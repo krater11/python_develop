@@ -6,8 +6,7 @@ from utils.DictZip import dict_zip
 from settings import DATABASE
 
 
-def UserRegist(username,userpassword,userphone):
-
+def UserRegist(username, userpassword, userphone):
     try:
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
@@ -33,8 +32,7 @@ def UserRegist(username,userpassword,userphone):
     return 200, "注册成功"
 
 
-def UserLogin(username,userpassword):
-
+def UserLogin(username, userpassword):
     try:
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()

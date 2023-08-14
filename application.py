@@ -1,19 +1,43 @@
+import os
+
 from DBManager.UserInfo import UserRegist, UserLogin
-from DBManager.ImageInfo import UploadImage
+from DBManager.ImageInfo import UploadImage,GetImage
 from http.server import BaseHTTPRequestHandler
 import json
+from urllib.parse import urlparse, parse_qs
 import cgi
+import tempfile
 
 
 class Application(BaseHTTPRequestHandler):
 
     def do_GET(self):
-
-        if self.path == "/":
+        path = self.path.split("?")
+        if path[0] == "/":
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             self.wfile.write(b"Welcome Home")
+
+        elif path[0] == "/api/get_image":
+            url = f"http://{self.headers['Host']}{self.path}"
+            parsed_url = urlparse(url)
+            query_params = parse_qs(parsed_url.query)
+            image_name = query_params['image'][0]
+            response_code, message = GetImage(image_name)
+            print(message)
+            self.send_response(response_code)
+            self.send_header('Content-type', 'image/jepg')
+            self.end_headers()
+            with open(message, 'rb') as file:
+                self.wfile.write(file.read())
+
+
+        else:
+            self.send_response(404)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(b'404 Not Found')
 
     def do_POST(self):
 
@@ -31,7 +55,7 @@ class Application(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(bmessage)
 
-        if self.path == "/api/login":
+        elif self.path == "/api/login":
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length).decode("utf-8")
             data = json.loads(post_data)
@@ -44,7 +68,7 @@ class Application(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(bmessage)
 
-        if self.path == "/api/image_upload":
+        elif self.path == "/api/image_upload":
             content_type = self.headers['Content-Type']
             boundary = content_type.split('; ')[1].split('=')[1]
 
@@ -70,3 +94,9 @@ class Application(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             self.wfile.write(bmessage)
+
+        else:
+            self.send_response(404)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(b'404 Not Found')
