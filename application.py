@@ -8,6 +8,9 @@ import json
 from urllib.parse import urlparse, parse_qs
 import cgi
 import tempfile
+from DBManager.Permission import permission_status
+from utils.GetUrl import get_url_data
+from utils.GetFile import get_file_filename
 
 
 class Application(BaseHTTPRequestHandler):
@@ -19,7 +22,7 @@ class Application(BaseHTTPRequestHandler):
         username_password = base64.b64decode(auth_token).decode('utf-8')
         username, password = username_password.split(':')
         basic_auth_status, message = BasicAuth(username, password)
-        return basic_auth_status, message
+        return username, basic_auth_status, message
 
     def do_GET(self):
         path = self.path.split("?")
@@ -30,25 +33,30 @@ class Application(BaseHTTPRequestHandler):
             self.wfile.write(b"Welcome Home")
 
         elif path[0] == "/api/get_image":
-            status, message = self.basic_auth()
+            username, status, message = self.basic_auth()
             if status == 200:
-                url = f"http://{self.headers['Host']}{self.path}"
-                parsed_url = urlparse(url)
-                query_params = parse_qs(parsed_url.query)
-                image_name = query_params['image'][0]
-                response_code, message = GetImage(image_name)
-                self.send_response(response_code)
-                self.send_header('Content-type', 'image/jepg')
-                self.end_headers()
-                with open(message, 'rb') as file:
-                    self.wfile.write(file.read())
+                data = permission_status(username)
+                if bool(int(data['read_permission'])):
+                    url = f"http://{self.headers['Host']}{self.path}"
+                    image_name = get_url_data(url)['image'][0]
+                    response_code, message = GetImage(image_name)
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'image/jepg')
+                    self.end_headers()
+                    with open(message, 'rb') as file:
+                        self.wfile.write(file.read())
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
             else:
                 bmessage = message.encode("utf-8")
                 self.send_response(status)
                 self.send_header('Content-type', 'text/html')
                 self.end_headers()
                 self.wfile.write(bmessage)
-
         else:
             self.send_response(404)
             self.send_header('Content-type', 'text/html')
@@ -86,34 +94,27 @@ class Application(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(bmessage)
 
-        elif self.path == "/api/image_upload":
-            status, message = self.basic_auth()
+        elif self.path == "/api/upload_image":
+            username, status, message = self.basic_auth()
             if status == 200:
-                content_type = self.headers['Content-Type']
-                boundary = content_type.split('; ')[1].split('=')[1]
-
-                # 读取请求体的数据
-                content_length = int(self.headers['Content-Length'])
-                data = self.rfile.read(content_length)
-
-                # 分割数据，找到文件名
-                parts = data.split(b'--' + boundary.encode())
-                for part in parts:
-                    if b'filename=' in part:
-                        # 获取文件名
-                        filename_start = part.find(b'filename=')
-                        filename_end = part.find(b'\r\n', filename_start)
-                        image_name = part[filename_start + 10:filename_end - 1].decode()
-                        content_start = part.find(b'\r\n\r\n')
-                        image_file = part[content_start + 4:-2]
-
-                response_code, message = UploadImage(image_file, image_name)
-                bmessage = message.encode("utf-8")
-
-                self.send_response(response_code)
-                self.send_header('Content-type', 'text/html')
-                self.end_headers()
-                self.wfile.write(bmessage)
+                data = permission_status(username)
+                if bool(int(data['upload_permission'])):
+                    content_type = self.headers['Content-Type']
+                    content_length = int(self.headers['Content-Length'])
+                    data = self.rfile.read(content_length)
+                    image_file, image_name = get_file_filename(content_type, data)
+                    response_code, message = UploadImage(image_file, image_name)
+                    bmessage = message.encode("utf-8")
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
             else:
                 bmessage = message.encode("utf-8")
                 self.send_response(status)

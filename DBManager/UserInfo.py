@@ -1,6 +1,6 @@
 import sqlite3
 from datetime import datetime
-from utils.hash import hash_string
+from utils.HashNumber import hash_string
 from utils.TokenCreate import generate_token
 from utils.DictZip import dict_zip
 from settings import DATABASE

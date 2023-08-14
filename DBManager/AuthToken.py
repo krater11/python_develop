@@ -1,5 +1,5 @@
 import sqlite3
-from utils.hash import hash_string
+from utils.HashNumber import hash_string
 
 
 def BasicAuth(user_name,user_password):
