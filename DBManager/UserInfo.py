@@ -30,7 +30,7 @@ def UserRegist(username, userpassword, userphone):
     return 200, "注册成功"
 
 
-def UserLogin(username, userpassword):
+def UserLogin(username, userpassword, auth_token):
     try:
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
@@ -47,7 +47,6 @@ def UserLogin(username, userpassword):
     if not hashpassword == useritem[0]:
         conn.close()
         return 400, "密码错误"
-    user_token = generate_token()
     item = c.execute("SELECT user_token FROM UserInfo WHERE user_name = '%s'" % username)
     user_item = item.fetchone()
 
@@ -55,7 +54,7 @@ def UserLogin(username, userpassword):
         conn.close()
         return 200, "登录成功"
 
-    c.execute("UPDATE UserInfo SET user_token = '%s'" % user_token)
+    c.execute("UPDATE UserInfo SET user_token = '%s'" % auth_token)
     conn.commit()
     conn.close()
     return 200, "登录成功"
