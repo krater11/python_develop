@@ -14,7 +14,6 @@ def UploadImage(image_file, image_name):
     item = c.execute("SELECT image_name FROM ImageInfo WHERE image_name = '%s'" % image_name)
     imageitem = item.fetchone()
     if imageitem is not None:
-        c.close()
         conn.close()
         return 401, "图片名称已存在请更改名称后重新上传"
     root_path = ROOT_PATH.replace("\\", "/")
@@ -26,10 +25,8 @@ def UploadImage(image_file, image_name):
             f.write(image_file)
         c.execute("INSERT INTO ImageInfo (image_file, image_name) VALUES(?, ?)", image_data)
         conn.commit()
-        c.close()
         conn.close()
     except Exception:
-        c.close()
         conn.close()
         return 400, "上传失败"
 
