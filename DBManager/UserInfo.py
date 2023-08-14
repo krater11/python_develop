@@ -1,6 +1,5 @@
 import sqlite3
 from datetime import datetime
-import hashlib
 from utils.hash import hash_string
 from utils.TokenCreate import generate_token
 from utils.DictZip import dict_zip
@@ -44,15 +43,19 @@ def UserLogin(username,userpassword):
 
     hashpassword = hash_string(userpassword)
     item = c.execute("SELECT * FROM UserInfo WHERE user_name = '%s'" % username)
-    useritem = item.fetchall()
-
+    useritem = item.fetchone()
     if useritem is None:
         c.close()
         conn.close()
         return 400, "用户不存在"
+
+    item1 = c.execute("SELECT * FROM UserInfo WHERE user_name = '%s'" % username)
+    useritem1 = item1.fetchall()
+
     column_names = [description[0] for description in c.description]
 
-    data = dict_zip(useritem, column_names)
+    data = dict_zip(useritem1, column_names)
+
     if not hashpassword == data["user_password"]:
         c.close()
         conn.close()

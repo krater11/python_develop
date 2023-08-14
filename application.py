@@ -45,18 +45,28 @@ class Application(BaseHTTPRequestHandler):
             self.wfile.write(bmessage)
 
         if self.path == "/api/image_upload":
-            content_type, _ = cgi.parse_header(self.headers.get('content-type'))
-            form_data = cgi.FieldStorage(
-                fp=self.rfile,
-                headers=self.headers,
-                environ={'REQUEST_METHOD': 'POST'}
-            )
-            image_file = form_data['image'].value
-            image_name = form_data['image']
-            print(type(image_name))
-            # response_code, message = UploadImage(image_file, image_name)
-            # bmessage = message.encode("utf-8")
-            self.send_response(200)
+            content_type = self.headers['Content-Type']
+            boundary = content_type.split('; ')[1].split('=')[1]
+
+            # 读取请求体的数据
+            content_length = int(self.headers['Content-Length'])
+            data = self.rfile.read(content_length)
+
+            # 分割数据，找到文件名
+            parts = data.split(b'--' + boundary.encode())
+            for part in parts:
+                if b'filename=' in part:
+                    # 获取文件名
+                    filename_start = part.find(b'filename=')
+                    filename_end = part.find(b'\r\n', filename_start)
+                    image_name = part[filename_start + 10:filename_end - 1].decode()
+                    content_start = part.find(b'\r\n\r\n')
+                    image_file = part[content_start + 4:-2]
+
+            response_code, message = UploadImage(image_file, image_name)
+            bmessage = message.encode("utf-8")
+
+            self.send_response(response_code)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-            self.wfile.write(b"message")
+            self.wfile.write(bmessage)
