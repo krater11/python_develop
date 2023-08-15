@@ -1,11 +1,13 @@
 import sqlite3
+
+from settings import DATABASE
 from utils.HashNumber import hash_string
 
 
 def BasicAuth(user_name,user_password):
 
     try:
-        conn = sqlite3.connect("test.db")
+        conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
     except Exception:
         return 400, "连接失败"

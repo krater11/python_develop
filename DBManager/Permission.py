@@ -1,10 +1,11 @@
 import sqlite3
 from utils.DictZip import dict_zip
+from settings import DATABASE
 
 
 def permission_status(username):
     try:
-        conn = sqlite3.connect("test.db")
+        conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
     except Exception:
         return 400, "连接失败"

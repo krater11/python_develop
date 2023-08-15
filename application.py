@@ -1,16 +1,14 @@
 import base64
-import os
 from DBManager.AuthToken import BasicAuth
 from DBManager.UserInfo import UserRegist, UserLogin
 from DBManager.ImageInfo import UploadImage,GetImage
 from http.server import BaseHTTPRequestHandler
 import json
-from urllib.parse import urlparse, parse_qs
-import cgi
-import tempfile
 from DBManager.Permission import permission_status
 from utils.GetUrl import get_url_data
 from utils.GetFile import get_file_filename
+from DBManager.ManageInfo import ManageLogin,ManageRegist
+from DBManager.PermissionManage import get_superuser_status,get_user_permission
 
 
 class Application(BaseHTTPRequestHandler):
@@ -57,6 +55,30 @@ class Application(BaseHTTPRequestHandler):
                 self.send_header('Content-type', 'text/html')
                 self.end_headers()
                 self.wfile.write(bmessage)
+
+        elif path[0] == "/api/manage_permission_list":
+            username, status, message = self.basic_auth()
+            if status == 200:
+                if bool(get_superuser_status(username)):
+                    response_code, message = get_user_permission(username)
+                    bmessage = message.encode("utf-8")
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+                else:
+                    bmessage = "非管理员用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+            else:
+                bmessage = message.encode("utf-8")
+                self.send_response(status)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write(bmessage)
+
         else:
             self.send_response(404)
             self.send_header('Content-type', 'text/html')
@@ -65,7 +87,50 @@ class Application(BaseHTTPRequestHandler):
 
     def do_POST(self):
 
-        if self.path == "/api/regist":
+        if self.path == "/api/manage_regist":
+            try:
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length).decode("utf-8")
+                data = json.loads(post_data)
+                username = data["user_name"]
+                userpassword = data["user_password"]
+                userphone = data["user_phone"]
+                response_code, message = ManageRegist(username, userpassword, userphone)
+                bmessage = message.encode("utf-8")
+            except Exception:
+                response_code = 400
+                bmessage = "数据格式错误".encode("utf-8")
+            self.send_response(response_code)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(bmessage)
+
+        elif self.path == "/api/manage_login":
+            try:
+                auth_header = self.headers.get('Authorization')
+                auth_token = auth_header.split(' ')[-1]
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length).decode("utf-8")
+                data = json.loads(post_data)
+                username = data["user_name"]
+                userpassword = data["user_password"]
+                response_code, message = ManageLogin(username, userpassword, auth_token)
+                bmessage = message.encode("utf-8")
+            except Exception:
+                response_code = 400
+                bmessage = "数据格式错误".encode("utf-8")
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(bmessage)
+
+        elif self.path == "/api/manage_permission":
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(b'123')
+
+        elif self.path == "/api/regist":
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length).decode("utf-8")
             data = json.loads(post_data)

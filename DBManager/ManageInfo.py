@@ -1,10 +1,10 @@
 import sqlite3
-from datetime import datetime
 from utils.HashNumber import hash_string
 from settings import DATABASE
+from datetime import datetime
 
 
-def UserRegist(username, userpassword, userphone):
+def ManageRegist(username, userpassword, userphone):
     try:
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
@@ -21,14 +21,14 @@ def UserRegist(username, userpassword, userphone):
     hashuserpassword = hash_string(userpassword)
     createtime = datetime.now()
     usercreatetime = createtime.strftime("%Y-%m-%d %H:%M:%S")
-    data = (username, hashuserpassword, userphone, usercreatetime, 0)
+    data = (username, hashuserpassword, userphone, usercreatetime, 1)
     c.execute("INSERT INTO UserInfo (user_name, user_password, user_phone, user_createtime, superuser) VALUES(?, ?, ?, ?, ?)", data)
     conn.commit()
     conn.close()
     return 200, "注册成功"
 
 
-def UserLogin(username, userpassword, auth_token):
+def ManageLogin(username, userpassword,auth_token):
 
     try:
         conn = sqlite3.connect(DATABASE)
@@ -48,7 +48,7 @@ def UserLogin(username, userpassword, auth_token):
 
     user_id = c.execute("SELECT user_id FROM UserInfo WHERE user_name = '%s'" % username).fetchone()[0]
     if c.execute("SELECT user_id FROM PermissionInfo WHERE user_id = '%d'" % user_id).fetchone() is None:
-        c.execute("INSERT INTO PermissionInfo (user_id, upload_permission, read_permission, update_permission) VALUES(? ,?, ?, ?)", (user_id, 0, 1, 0))
+        c.execute("INSERT INTO PermissionInfo (user_id, upload_permission, read_permission, update_permission) VALUES(? ,?, ?, ?)", (user_id, 1, 1, 1))
         conn.commit()
 
     user_item = c.execute("SELECT user_token FROM UserInfo WHERE user_name = '%s'" % username).fetchone()
