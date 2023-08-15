@@ -8,7 +8,7 @@ from DBManager.Permission import permission_status
 from utils.GetUrl import get_url_data
 from utils.GetFile import get_file_filename
 from DBManager.ManageInfo import ManageLogin,ManageRegist
-from DBManager.PermissionManage import get_superuser_status,get_user_permission
+from DBManager.PermissionManage import get_superuser_status, get_user_permission, manage_permission
 
 
 class Application(BaseHTTPRequestHandler):
@@ -127,11 +127,21 @@ class Application(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(bmessage)
 
-        elif self.path == "/api/manage_permission":
-            self.send_response(200)
+        elif self.path == "/api/manage_permission_list":
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length).decode("utf-8")
+            data = json.loads(post_data)
+            username = data["user_name"]
+            upload_permission = data["upload_permission"]
+            read_permission = data["read_permission"]
+            update_permission = data["update_permission"]
+            permission_data = [upload_permission, read_permission, update_permission]
+            response_code, message = manage_permission(username, permission_data)
+            bmessage = message.encode("utf-8")
+            self.send_response(response_code)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-            self.wfile.write(b'123')
+            self.wfile.write(bmessage)
 
         elif self.path == "/api/regist":
             try:

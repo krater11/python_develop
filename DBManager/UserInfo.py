@@ -60,3 +60,15 @@ def UserLogin(username, userpassword, auth_token):
     conn.commit()
     conn.close()
     return 200, "登录成功"
+
+
+def GetUserId(username):
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+    except Exception:
+        print("error")
+
+    userid = c.execute("SELECT user_id FROM UserInfo WHERE user_name = '%s'" % username).fetchone()[0]
+
+    return userid
