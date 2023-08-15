@@ -1,5 +1,6 @@
 from http.server import ThreadingHTTPServer
 from application import Application
+from utils.GenerateRequirements import generate_requirements
 
 
 def run_server():
@@ -15,4 +16,6 @@ def run_server():
 
 
 if __name__ == "__main__":
+    generate_requirements()
     run_server()
+
