@@ -119,7 +119,7 @@ class Application(BaseHTTPRequestHandler):
             except Exception:
                 response_code = 400
                 bmessage = "数据格式错误".encode("utf-8")
-            self.send_response(200)
+            self.send_response(response_code)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             self.wfile.write(bmessage)
@@ -131,29 +131,37 @@ class Application(BaseHTTPRequestHandler):
             self.wfile.write(b'123')
 
         elif self.path == "/api/regist":
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length).decode("utf-8")
-            data = json.loads(post_data)
-            username = data["user_name"]
-            userpassword = data["user_password"]
-            userphone = data["user_phone"]
-            response_code, message = UserRegist(username, userpassword, userphone)
-            bmessage = message.encode("utf-8")
+            try:
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length).decode("utf-8")
+                data = json.loads(post_data)
+                username = data["user_name"]
+                userpassword = data["user_password"]
+                userphone = data["user_phone"]
+                response_code, message = UserRegist(username, userpassword, userphone)
+                bmessage = message.encode("utf-8")
+            except Exception:
+                response_code = 400
+                bmessage = "数据格式错误".encode("utf-8")
             self.send_response(response_code)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             self.wfile.write(bmessage)
 
         elif self.path == "/api/login":
-            auth_header = self.headers.get('Authorization')
-            auth_token = auth_header.split(' ')[-1]
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length).decode("utf-8")
-            data = json.loads(post_data)
-            username = data["user_name"]
-            userpassword = data["user_password"]
-            response_code, message = UserLogin(username, userpassword,auth_token)
-            bmessage = message.encode("utf-8")
+            try:
+                auth_header = self.headers.get('Authorization')
+                auth_token = auth_header.split(' ')[-1]
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length).decode("utf-8")
+                data = json.loads(post_data)
+                username = data["user_name"]
+                userpassword = data["user_password"]
+                response_code, message = UserLogin(username, userpassword, auth_token)
+                bmessage = message.encode("utf-8")
+            except Exception:
+                response_code = 400
+                bmessage = "数据格式错误".encode("utf-8")
             self.send_response(response_code)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
@@ -164,12 +172,16 @@ class Application(BaseHTTPRequestHandler):
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['upload_permission'])):
-                    content_type = self.headers['Content-Type']
-                    content_length = int(self.headers['Content-Length'])
-                    data = self.rfile.read(content_length)
-                    image_file, image_name = get_file_filename(content_type, data)
-                    response_code, message = UploadImage(image_file, image_name)
-                    bmessage = message.encode("utf-8")
+                    try:
+                        content_type = self.headers['Content-Type']
+                        content_length = int(self.headers['Content-Length'])
+                        data = self.rfile.read(content_length)
+                        image_file, image_name = get_file_filename(content_type, data)
+                        response_code, message = UploadImage(image_file, image_name)
+                        bmessage = message.encode("utf-8")
+                    except Exception:
+                        response_code = 400
+                        bmessage = "数据格式错误".encode("utf-8")
                     self.send_response(response_code)
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()
