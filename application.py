@@ -12,7 +12,7 @@ from DBManager.PermissionManage import get_superuser_status,get_user_permission
 
 
 class Application(BaseHTTPRequestHandler):
-
+    # 登录检验
     def basic_auth(self):
         auth_header = self.headers.get('Authorization')
 
@@ -22,14 +22,16 @@ class Application(BaseHTTPRequestHandler):
         basic_auth_status, message = BasicAuth(username, password)
         return username, basic_auth_status, message
 
+    # GET请求
     def do_GET(self):
         path = self.path.split("?")
+        # 主页
         if path[0] == "/":
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             self.wfile.write(b"Welcome Home")
-
+        # 获取照片
         elif path[0] == "/api/get_image":
             username, status, message = self.basic_auth()
             if status == 200:
@@ -55,12 +57,12 @@ class Application(BaseHTTPRequestHandler):
                 self.send_header('Content-type', 'text/html')
                 self.end_headers()
                 self.wfile.write(bmessage)
-
+        # 查看所有用户权限
         elif path[0] == "/api/manage_permission_list":
             username, status, message = self.basic_auth()
             if status == 200:
                 if bool(get_superuser_status(username)):
-                    response_code, message = get_user_permission(username)
+                    response_code, message = get_user_permission()
                     bmessage = message.encode("utf-8")
                     self.send_response(response_code)
                     self.send_header('Content-type', 'text/html')
@@ -85,6 +87,7 @@ class Application(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'404 Not Found')
 
+    #POST请求
     def do_POST(self):
 
         if self.path == "/api/manage_regist":
