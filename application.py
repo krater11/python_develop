@@ -122,9 +122,7 @@ class Application(BaseHTTPRequestHandler):
                 content_length = int(self.headers['Content-Length'])
                 post_data = self.rfile.read(content_length).decode("utf-8")
                 data = json.loads(post_data)
-                username = data["user_name"]
-                userpassword = data["user_password"]
-                response_code, message = ManageLogin(username, userpassword, auth_token)
+                response_code, message = ManageLogin(data, auth_token)
                 bmessage = message.encode("utf-8")
             except Exception:
                 response_code = 400
@@ -139,12 +137,7 @@ class Application(BaseHTTPRequestHandler):
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length).decode("utf-8")
             data = json.loads(post_data)
-            username = data["user_name"]
-            upload_permission = data["upload_permission"]
-            read_permission = data["read_permission"]
-            update_permission = data["update_permission"]
-            permission_data = [upload_permission, read_permission, update_permission]
-            response_code, message = manage_permission(username, permission_data)
+            response_code, message = manage_permission(data)
             bmessage = message.encode("utf-8")
             self.send_response(response_code)
             self.send_header('Content-type', 'text/html')
@@ -157,10 +150,7 @@ class Application(BaseHTTPRequestHandler):
                 content_length = int(self.headers['Content-Length'])
                 post_data = self.rfile.read(content_length).decode("utf-8")
                 data = json.loads(post_data)
-                username = data["user_name"]
-                userpassword = data["user_password"]
-                userphone = data["user_phone"]
-                response_code, message = UserRegist(username, userpassword, userphone)
+                response_code, message = UserRegist(data)
                 bmessage = message.encode("utf-8")
             except Exception:
                 response_code = 400
@@ -178,9 +168,7 @@ class Application(BaseHTTPRequestHandler):
                 content_length = int(self.headers['Content-Length'])
                 post_data = self.rfile.read(content_length).decode("utf-8")
                 data = json.loads(post_data)
-                username = data["user_name"]
-                userpassword = data["user_password"]
-                response_code, message = UserLogin(username, userpassword, auth_token)
+                response_code, message = UserLogin(data, auth_token)
                 bmessage = message.encode("utf-8")
             except Exception:
                 response_code = 400
@@ -234,16 +222,15 @@ class Application(BaseHTTPRequestHandler):
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['upload_permission'])):
-                    # try:
-                    content_length = int(self.headers['Content-Length'])
-                    post_data = self.rfile.read(content_length).decode("utf-8")
-                    data = json.loads(post_data)
-
-                    response_code, message = upload_rich_text(data)
-                    bmessage = message.encode("utf-8")
-                    # except Exception:
-                    #     response_code = 400
-                    #     bmessage = "数据格式错误".encode("utf-8")
+                    try:
+                        content_length = int(self.headers['Content-Length'])
+                        post_data = self.rfile.read(content_length).decode("utf-8")
+                        data = json.loads(post_data)
+                        response_code, message = upload_rich_text(data)
+                        bmessage = message.encode("utf-8")
+                    except Exception:
+                        response_code = 400
+                        bmessage = "数据格式错误".encode("utf-8")
                     self.send_response(response_code)
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()

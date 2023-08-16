@@ -2,9 +2,10 @@ import sqlite3
 from datetime import datetime
 from utils.HashNumber import hash_string
 from settings import DATABASE
+from utils.IFSuperUser import if_superuser
 
 
-def UserRegist(username, userpassword, userphone):
+def UserRegist(user_data):
     try:
         conn = sqlite3.connect(DATABASE)
         conn.execute('''
@@ -19,7 +20,9 @@ def UserRegist(username, userpassword, userphone):
     except Exception:
         return 401, "链接失败"
 
-
+    username = user_data["user_name"]
+    userpassword = user_data["user_password"]
+    userphone = user_data["user_phone"]
     item = c.execute("SELECT user_name FROM UserInfo WHERE user_name = '%s'" % username)
     useritem = item.fetchone()
 
@@ -37,7 +40,7 @@ def UserRegist(username, userpassword, userphone):
     return 200, "注册成功"
 
 
-def UserLogin(username, userpassword, auth_token):
+def UserLogin(data, auth_token):
 
     try:
         conn = sqlite3.connect(DATABASE)
@@ -45,9 +48,11 @@ def UserLogin(username, userpassword, auth_token):
     except Exception:
         return 401, "链接失败"
 
+    username = data["user_name"]
+    userpassword = data["user_password"]
     hashpassword = hash_string(userpassword)
-
     useritem = c.execute("SELECT user_password FROM UserInfo WHERE user_name = '%s'" % username).fetchone()
+
     if useritem is None:
         conn.close()
         return 400, "用户不存在"
@@ -60,10 +65,23 @@ def UserLogin(username, userpassword, auth_token):
     upload_permission VARCHAR,
     read_permission VARCHAR,
     update_permission VARCHAR)''')
-    user_id = c.execute("SELECT user_id FROM UserInfo WHERE user_name = '%s'" % username).fetchone()[0]
-    if c.execute("SELECT user_id FROM PermissionInfo WHERE user_id = '%d'" % user_id).fetchone() is None:
-        c.execute("INSERT INTO PermissionInfo (user_id, upload_permission, read_permission, update_permission) VALUES(? ,?, ?, ?)", (user_id, 0, 1, 0))
-        conn.commit()
+
+    if if_superuser(username):
+        print("管理员用户")
+        user_id = c.execute("SELECT user_id FROM UserInfo WHERE user_name = '%s'" % username).fetchone()[0]
+        if c.execute("SELECT user_id FROM PermissionInfo WHERE user_id = '%d'" % user_id).fetchone() is None:
+            c.execute(
+                "INSERT INTO PermissionInfo (user_id, upload_permission, read_permission, update_permission) VALUES(? ,?, ?, ?)",
+                (user_id, 1, 1, 1))
+            conn.commit()
+    else:
+        print("普通用户")
+        user_id = c.execute("SELECT user_id FROM UserInfo WHERE user_name = '%s'" % username).fetchone()[0]
+        if c.execute("SELECT user_id FROM PermissionInfo WHERE user_id = '%d'" % user_id).fetchone() is None:
+            c.execute(
+                "INSERT INTO PermissionInfo (user_id, upload_permission, read_permission, update_permission) VALUES(? ,?, ?, ?)",
+                (user_id, 0, 1, 0))
+            conn.commit()
 
     user_item = c.execute("SELECT user_token FROM UserInfo WHERE user_name = '%s'" % username).fetchone()
     if user_item[0] is not None:

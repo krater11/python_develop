@@ -43,7 +43,7 @@ def get_user_permission():
     return 200, json_data
 
 
-def manage_permission(username, data):
+def manage_permission(data):
 
     try:
         conn = sqlite3.connect(DATABASE)
@@ -51,8 +51,13 @@ def manage_permission(username, data):
     except Exception:
         return 400, "连接失败"
 
+    username = data['user_name']
     userid = GetUserId(username)
-    permission_list = permission_number(data)
+    upload_permission = data["upload_permission"]
+    read_permission = data["read_permission"]
+    update_permission = data["update_permission"]
+    list = [upload_permission, read_permission, update_permission]
+    permission_list = permission_number(list)
     permission_list += [userid]
     try:
         c.execute("UPDATE PermissionInfo SET upload_permission = ?, read_permission = ?, update_permission = ? WHERE user_id = ?", permission_list)
