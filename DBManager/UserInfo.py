@@ -7,9 +7,18 @@ from settings import DATABASE
 def UserRegist(username, userpassword, userphone):
     try:
         conn = sqlite3.connect(DATABASE)
+        conn.execute('''
+        CREATE TABLE IF NOT EXISTS UserInfo (user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_name VARCHAR UNIQUE,
+    user_password VARCHAR,
+    user_phone INTEGER (11),
+    user_createtime DATETIME,
+    user_token VARCHAR (255),
+    superuser INTEGER)''')
         c = conn.cursor()
     except Exception:
         return 401, "链接失败"
+
 
     item = c.execute("SELECT user_name FROM UserInfo WHERE user_name = '%s'" % username)
     useritem = item.fetchone()
@@ -46,6 +55,11 @@ def UserLogin(username, userpassword, auth_token):
         conn.close()
         return 400, "密码错误"
 
+    conn.execute('''
+    CREATE TABLE IF NOT EXISTS PermissionInfo (user_id INTEGER REFERENCES UserInfo (user_id),
+    upload_permission VARCHAR,
+    read_permission VARCHAR,
+    update_permission VARCHAR)''')
     user_id = c.execute("SELECT user_id FROM UserInfo WHERE user_name = '%s'" % username).fetchone()[0]
     if c.execute("SELECT user_id FROM PermissionInfo WHERE user_id = '%d'" % user_id).fetchone() is None:
         c.execute("INSERT INTO PermissionInfo (user_id, upload_permission, read_permission, update_permission) VALUES(? ,?, ?, ?)", (user_id, 0, 1, 0))

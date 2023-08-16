@@ -7,6 +7,11 @@ from settings import DATABASE, IMAGE_PATH, ROOT_PATH
 def UploadImage(image_file, image_name):
     try:
         conn = sqlite3.connect(DATABASE)
+        conn.execute('''
+        CREATE TABLE IF NOT EXISTS ImageInfo (
+        image_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        image_file VARCHAR (255),
+        image_name VARCHAR)''')
         c = conn.cursor()
     except Exception:
         return 401, "链接失败"
