@@ -5,7 +5,7 @@ from datetime import datetime
 from utils.IFSuperUser import if_superuser
 
 
-def ManageRegist(username, userpassword, userphone):
+def ManageRegist(data):
     try:
         conn = sqlite3.connect(DATABASE)
         conn.execute('''
@@ -20,6 +20,9 @@ def ManageRegist(username, userpassword, userphone):
     except Exception:
         return 401, "链接失败"
 
+    username = data["user_name"]
+    userpassword = data["user_password"]
+    userphone = data["user_phone"]
     item = c.execute("SELECT user_name FROM UserInfo WHERE user_name = '%s'" % username)
     useritem = item.fetchone()
 

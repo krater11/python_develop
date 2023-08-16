@@ -5,7 +5,7 @@ from utils.GetUrl import get_url_data
 from DBManager.AuthToken import BasicAuth
 from http.server import BaseHTTPRequestHandler
 from DBManager.Permission import permission_status
-from DBManager.RichTextInfo import upload_rich_text
+from DBManager.RichTextInfo import upload_rich_text, get_rich_text
 from DBManager.UserInfo import UserRegist, UserLogin
 from DBManager.ImageInfo import UploadImage, GetImage
 from DBManager.ManageInfo import ManageLogin, ManageRegist
@@ -85,6 +85,32 @@ class Application(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(bmessage)
 
+        elif path[0] == "/api/rich_text":
+            username, status, message = self.basic_auth()
+            if status == 200:
+                data = permission_status(username)
+                if bool(int(data['read_permission'])):
+                    url = f"http://{self.headers['Host']}{self.path}"
+                    text_name = get_url_data(url)['text'][0]
+                    response_code, message = get_rich_text(text_name)
+                    bmessage = message.encode("utf-8")
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+            else:
+                bmessage = message.encode("utf-8")
+                self.send_response(status)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write(bmessage)
+
         # 无响应页
         else:
             self.send_response(404)
@@ -101,10 +127,7 @@ class Application(BaseHTTPRequestHandler):
                 content_length = int(self.headers['Content-Length'])
                 post_data = self.rfile.read(content_length).decode("utf-8")
                 data = json.loads(post_data)
-                username = data["user_name"]
-                userpassword = data["user_password"]
-                userphone = data["user_phone"]
-                response_code, message = ManageRegist(username, userpassword, userphone)
+                response_code, message = ManageRegist(data)
                 bmessage = message.encode("utf-8")
             except Exception:
                 response_code = 400
@@ -217,7 +240,7 @@ class Application(BaseHTTPRequestHandler):
                 self.wfile.write(bmessage)
 
         # 上传富文本
-        elif self.path == "/api/upload_rich_text":
+        elif self.path == "/api/rich_text":
             username, status, message = self.basic_auth()
             if status == 200:
                 data = permission_status(username)
