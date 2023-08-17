@@ -44,7 +44,7 @@ class Application(BaseHTTPRequestHandler):
                     imagename = get_url_data(url)['image']
                     response_code, message = GetImage(imagename)
                     self.send_response(response_code)
-                    self.send_header('Content-type', 'image/jepg')
+                    self.send_header('Content-type', 'image/jpeg')
                     self.end_headers()
                     for i in message:
                         with open(i, 'rb') as file:
@@ -70,7 +70,7 @@ class Application(BaseHTTPRequestHandler):
                     response_code, message = GetImageList()
                     bmessage = message.encode("utf-8")
                     self.send_response(response_code)
-                    self.send_header('Content-type', 'image/jepg')
+                    self.send_header('Content-type', 'image/jpeg')
                     self.end_headers()
                     self.wfile.write(bmessage)
                 else:
