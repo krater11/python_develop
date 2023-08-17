@@ -7,7 +7,7 @@ from http.server import BaseHTTPRequestHandler
 from DBManager.Permission import permission_status
 from DBManager.RichTextInfo import upload_rich_text, get_rich_text
 from DBManager.UserInfo import UserRegist, UserLogin
-from DBManager.ImageInfo import UploadImage, GetImage
+from DBManager.ImageInfo import UploadImage, GetImage, GetImageList
 from DBManager.ManageInfo import ManageLogin, ManageRegist
 from DBManager.PermissionManage import get_superuser_status, get_user_permission, manage_permission
 
@@ -35,19 +35,44 @@ class Application(BaseHTTPRequestHandler):
             self.wfile.write(b"Welcome Home")
 
         # 获取照片
-        elif path[0] == "/api/get_image":
+        elif path[0] == "/api/image_info":
             username, status, message = self.basic_auth()
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['read_permission'])):
                     url = f"http://{self.headers['Host']}{self.path}"
-                    image_name = get_url_data(url)['image'][0]
-                    response_code, message = GetImage(image_name)
+                    imagename = get_url_data(url)['image']
+                    response_code, message = GetImage(imagename)
                     self.send_response(response_code)
                     self.send_header('Content-type', 'image/jepg')
                     self.end_headers()
-                    with open(message, 'rb') as file:
-                        self.wfile.write(file.read())
+                    for i in message:
+                        with open(i, 'rb') as file:
+                            self.wfile.write(file.read())
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+            else:
+                bmessage = message.encode("utf-8")
+                self.send_response(status)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write(bmessage)
+
+        elif path[0] == "/api/image_list":
+            username, status, message = self.basic_auth()
+            if status == 200:
+                data = permission_status(username)
+                if bool(int(data['read_permission'])):
+                    response_code, message = GetImageList()
+                    bmessage = message.encode("utf-8")
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'image/jepg')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
                 else:
                     bmessage = "用户缺少权限".encode("utf-8")
                     self.send_response(400)
@@ -202,7 +227,7 @@ class Application(BaseHTTPRequestHandler):
             self.wfile.write(bmessage)
 
         # 上传图片
-        elif self.path == "/api/upload_image":
+        elif self.path == "/api/image_info":
             username, status, message = self.basic_auth()
             if status == 200:
                 data = permission_status(username)
@@ -215,9 +240,14 @@ class Application(BaseHTTPRequestHandler):
                             environ={'REQUEST_METHOD': 'POST'}
                         )
                         file_field = form['image']
-                        image_file = file_field.file.read()
-                        image_name = file_field.filename
-                        response_code, message = UploadImage(image_file, image_name)
+                        imagefile = []
+                        imagename = []
+                        for i in file_field:
+                            image_file = i.file.read()
+                            image_name = i.filename
+                            imagefile.append(image_file)
+                            imagename.append(image_name)
+                        response_code, message = UploadImage(imagefile, imagename)
                         bmessage = message.encode("utf-8")
                     except Exception:
                         response_code = 400
