@@ -5,7 +5,6 @@ import json
 
 
 def upload_rich_text(data):
-
     try:
         conn = sqlite3.connect(DATABASE)
         conn.execute('''
@@ -34,7 +33,9 @@ def upload_rich_text(data):
         return 400, "文本名重复"
 
     try:
-        c.execute("INSERT INTO RichTextInfo (text_name, text, text_font, text_color, text_bold, text_italic) VALUES (?, ?, ?, ?, ?, ?)", text_data)
+        c.execute(
+            "INSERT INTO RichTextInfo (text_name, text, text_font, text_color, text_bold, text_italic) VALUES (?, ?, ?, ?, ?, ?)",
+            text_data)
         conn.commit()
         conn.close()
     except Exception:
@@ -43,7 +44,6 @@ def upload_rich_text(data):
 
 
 def get_rich_text(textname):
-
     try:
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
@@ -55,3 +55,54 @@ def get_rich_text(textname):
     data = dict_zip(textitem[0], column_names)
     json_data = json.dumps(data)
     return 200, json_data
+
+
+def update_rich_text(data):
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+    except Exception:
+        return 400, "连接失败"
+
+    richtextitem = c.execute("SELECT * FROM RichTextInfo WHERE text_name = '%s'" % data["text_name"]).fetchone()
+    if richtextitem is None:
+        conn.close()
+        return 400, "文本不存在"
+
+    key = []
+    value = []
+    for k, v in data.items():
+        if k == "text_name":
+            text_name = v
+        else:
+            key.append(k)
+            value.append(v)
+    update_query = "UPDATE RichTextInfo SET "
+    count = 0
+    for i in range(len(key) - 1):
+        update_query += f'{key[count]} = {value[count]}, '
+        count += 1
+    update_query += f"{key[count]} = {value[count]} WHERE text_name = '{text_name}'"
+    c.execute(update_query)
+    conn.commit()
+    conn.close()
+    return 200, "修改成功"
+
+
+def delete_rich_text(data):
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+    except Exception:
+        return 400, "数据库连接失败"
+
+    richtextitem = c.execute("SELECT * FROM RichTextInfo WHERE text_name = '%s'" % data["text_name"]).fetchone()
+    if richtextitem is None:
+        conn.close()
+        return 400, "文本不存在"
+
+    c.execute("DELETE FROM RichTextInfo WHERE text_name = '%s'" % data["text_name"])
+    conn.commit()
+    conn.close()
+
+    return 200, "富文本删除成功"
