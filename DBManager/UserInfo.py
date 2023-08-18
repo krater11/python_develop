@@ -1,8 +1,12 @@
+import json
 import sqlite3
 from datetime import datetime
 from utils.HashNumber import hash_string
-from settings import DATABASE
+from settings import DATABASE, RESPONSE_BAD_MESSAGE, RESPONSE_GOOD_MESSAGE
 from utils.IFSuperUser import if_superuser
+from utils.GenerateToken import generate_token
+from utils.ResponseBadMessage import bad_message
+from utils.ResponseGoodMessage import login_good_message, normal_good_message
 
 
 def UserRegist(user_data):
@@ -18,7 +22,7 @@ def UserRegist(user_data):
     superuser INTEGER)''')
         c = conn.cursor()
     except Exception:
-        return 401, "链接失败"
+        return 400, bad_message("链接失败")
 
     username = user_data["user_name"]
     userpassword = user_data["user_password"]
@@ -28,7 +32,7 @@ def UserRegist(user_data):
 
     if useritem is not None:
         conn.close()
-        return 400, "用户名已存在"
+        return 400, bad_message("链接失败")
 
     hashuserpassword = hash_string(userpassword)
     createtime = datetime.now()
@@ -37,16 +41,16 @@ def UserRegist(user_data):
     c.execute("INSERT INTO UserInfo (user_name, user_password, user_phone, user_createtime, superuser) VALUES(?, ?, ?, ?, ?)", data)
     conn.commit()
     conn.close()
-    return 200, "注册成功"
+    return 200, normal_good_message("注册成功")
 
 
-def UserLogin(data, auth_token):
+def UserLogin(data):
 
     try:
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
     except Exception:
-        return 401, "链接失败"
+        return 400, bad_message("链接失败")
 
     username = data["user_name"]
     userpassword = data["user_password"]
@@ -55,10 +59,10 @@ def UserLogin(data, auth_token):
 
     if useritem is None:
         conn.close()
-        return 400, "用户不存在"
+        return 400, bad_message("用户不存在")
     if not hashpassword == useritem[0]:
         conn.close()
-        return 400, "密码错误"
+        return 400, bad_message("密码错误")
 
     conn.execute('''
     CREATE TABLE IF NOT EXISTS PermissionInfo (user_id INTEGER REFERENCES UserInfo (user_id),
@@ -83,15 +87,16 @@ def UserLogin(data, auth_token):
                 (user_id, 0, 1, 0))
             conn.commit()
 
+    auth_token = generate_token(username, userpassword)
     user_item = c.execute("SELECT user_token FROM UserInfo WHERE user_name = '%s'" % username).fetchone()
     if user_item[0] is not None:
         conn.close()
-        return 200, "登录成功"
+        return 200, login_good_message("登录成功", user_item[0])
     c.execute("UPDATE UserInfo SET user_token = ? WHERE user_name = ?", (auth_token, username))
 
     conn.commit()
     conn.close()
-    return 200, "登录成功"
+    return 200, login_good_message("登录成功", auth_token)
 
 
 def GetUserId(username):

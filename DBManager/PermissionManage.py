@@ -5,6 +5,8 @@ from utils.GetID import get_id
 from utils.DictZip import dict_zip_multiple
 from utils.PermissionSwift import permission_swift, permission_number
 from DBManager.UserInfo import GetUserId
+from utils.ResponseGoodMessage import normal_good_message, data_good_message
+from utils.ResponseBadMessage import bad_message
 
 
 # 获取该用户名是否是管理者用户
@@ -13,7 +15,7 @@ def get_superuser_status(username):
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
     except Exception:
-        return 400, "连接失败"
+        return 400, bad_message("连接失败")
 
     superuseritem = c.execute("SELECT superuser FROM UserInfo WHERE user_name = '%s'" % username).fetchone()
     conn.close()
@@ -26,7 +28,7 @@ def get_user_permission():
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
     except Exception:
-        return 400, "连接失败"
+        return 400, bad_message("连接失败")
 
     superuseritem = c.execute("SELECT user_id FROM UserInfo WHERE superuser = 1").fetchall()
     data = tuple(get_id(superuseritem))
@@ -40,7 +42,7 @@ def get_user_permission():
     dictzip = dict_zip_multiple(permission_list, column_names)
     json_data = json.dumps(dictzip)
     conn.close()
-    return 200, json_data
+    return 200, data_good_message("获取成功", "用户权限信息", json_data)
 
 
 def manage_permission(data):
@@ -49,7 +51,7 @@ def manage_permission(data):
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
     except Exception:
-        return 400, "连接失败"
+        return 400, bad_message("连接失败")
 
     username = data['user_name']
     userid = GetUserId(username)
@@ -63,6 +65,6 @@ def manage_permission(data):
         c.execute("UPDATE PermissionInfo SET upload_permission = ?, read_permission = ?, update_permission = ? WHERE user_id = ?", permission_list)
         conn.commit()
     except Exception:
-        return 400, "权限更改失败"
+        return 400, bad_message("连接失败")
     conn.close()
-    return 200, "权限更改成功"
+    return 200, normal_good_message("权限更改成功")

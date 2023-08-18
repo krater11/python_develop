@@ -45,17 +45,23 @@ class Application(BaseHTTPRequestHandler):
                         url = f"http://{self.headers['Host']}{self.path}"
                         imagename = get_url_data(url)['image']
                         response_code, message = GetImage(imagename)
-                        self.send_response(response_code)
-                        self.send_header('Content-type', 'image/jpeg')
-                        self.end_headers()
-                        for i in message:
-                            with open(i, 'rb') as file:
-                                self.wfile.write(file.read())
+                        if response_code == 200:
+                            self.send_response(response_code)
+                            self.send_header('Content-type', 'image/jpeg')
+                            self.end_headers()
+                            for i in message:
+                                with open(i, 'rb') as file:
+                                    self.wfile.write(file.read())
+                        else:
+                            bmessage = message.encode("utf-8")
+                            self.send_response(response_code)
+                            self.send_header('Content-type', 'text/html')
+                            self.end_headers()
+                            self.wfile.write(bmessage)
                     except Exception:
-                        response_code = 400
                         bmessage = "数据格式错误".encode("utf-8")
-                        self.send_response(response_code)
-                        self.send_header('Content-type', 'image/jpeg')
+                        self.send_response(400)
+                        self.send_header('Content-type', 'text/html')
                         self.end_headers()
                         self.wfile.write(bmessage)
                 else:
@@ -84,7 +90,7 @@ class Application(BaseHTTPRequestHandler):
                         response_code = 400
                         bmessage = "数据格式错误".encode("utf-8")
                     self.send_response(response_code)
-                    self.send_header('Content-type', 'image/jpeg')
+                    self.send_header('Content-type', 'text/html')
                     self.end_headers()
                     self.wfile.write(bmessage)
                 else:
@@ -188,12 +194,10 @@ class Application(BaseHTTPRequestHandler):
         # 管理员登录
         elif self.path == "/api/manage_login":
             try:
-                auth_header = self.headers.get('Authorization')
-                auth_token = auth_header.split(' ')[-1]
                 content_length = int(self.headers['Content-Length'])
                 post_data = self.rfile.read(content_length).decode("utf-8")
                 data = json.loads(post_data)
-                response_code, message = ManageLogin(data, auth_token)
+                response_code, message = ManageLogin(data)
                 bmessage = message.encode("utf-8")
             except Exception:
                 response_code = 400
@@ -238,12 +242,10 @@ class Application(BaseHTTPRequestHandler):
         # 普通用户登录
         elif self.path == "/api/login":
             try:
-                auth_header = self.headers.get('Authorization')
-                auth_token = auth_header.split(' ')[-1]
                 content_length = int(self.headers['Content-Length'])
                 post_data = self.rfile.read(content_length).decode("utf-8")
                 data = json.loads(post_data)
-                response_code, message = UserLogin(data, auth_token)
+                response_code, message = UserLogin(data)
                 bmessage = message.encode("utf-8")
             except Exception:
                 response_code = 400
@@ -372,6 +374,7 @@ class Application(BaseHTTPRequestHandler):
 
     def do_DELETE(self):
 
+        # 删除富文本
         if self.path == "/api/rich_text":
             username, status, message = self.basic_auth()
             if status == 200:
@@ -403,6 +406,7 @@ class Application(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(bmessage)
 
+        #删除图片
         elif self.path == "/api/image_info":
             username, status, message = self.basic_auth()
             if status == 200:

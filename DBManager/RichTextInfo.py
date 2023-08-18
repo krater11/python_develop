@@ -2,6 +2,8 @@ import sqlite3
 from settings import DATABASE
 from utils.DictZip import dict_zip
 import json
+from utils.ResponseGoodMessage import normal_good_message, data_good_message
+from utils.ResponseBadMessage import bad_message
 
 
 def upload_rich_text(data):
@@ -20,7 +22,7 @@ def upload_rich_text(data):
         ''')
         c = conn.cursor()
     except Exception:
-        return 400, "连接失败"
+        return 400, bad_message("连接失败")
     text_name = data["text_name"]
     text = data["text"]
     text_font = data["text_font"]
@@ -30,7 +32,7 @@ def upload_rich_text(data):
     text_data = tuple([text_name, text, text_font, text_color, text_bold, text_italic])
     textitem = c.execute("SELECT text_id FROM RichTextInfo WHERE text_name = '%s'" % text_name).fetchone()
     if textitem is not None:
-        return 400, "文本名重复"
+        return 400, bad_message("连接失败")
 
     try:
         c.execute(
@@ -40,7 +42,7 @@ def upload_rich_text(data):
         conn.close()
     except Exception:
         print(Exception)
-    return 200, "保存成功"
+    return 200, normal_good_message("保存成功")
 
 
 def get_rich_text(textname):
@@ -48,13 +50,13 @@ def get_rich_text(textname):
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
     except Exception:
-        return 400, "连接失败"
+        return 400, bad_message("连接失败")
 
     textitem = c.execute("SELECT * FROM RichTextInfo WHERE text_name = '%s'" % textname).fetchall()
     column_names = [description[0] for description in c.description]
     data = dict_zip(textitem[0], column_names)
     json_data = json.dumps(data)
-    return 200, json_data
+    return 200, data_good_message("获取成功", "富文本信息", json_data)
 
 
 def update_rich_text(data):
@@ -62,12 +64,12 @@ def update_rich_text(data):
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
     except Exception:
-        return 400, "连接失败"
+        return 400, bad_message("连接失败")
 
     richtextitem = c.execute("SELECT * FROM RichTextInfo WHERE text_name = '%s'" % data["text_name"]).fetchone()
     if richtextitem is None:
         conn.close()
-        return 400, "文本不存在"
+        return 400, bad_message("文本不存在")
 
     key = []
     value = []
@@ -86,7 +88,7 @@ def update_rich_text(data):
     c.execute(update_query)
     conn.commit()
     conn.close()
-    return 200, "修改成功"
+    return 200, normal_good_message("修改成功")
 
 
 def delete_rich_text(data):
@@ -94,15 +96,15 @@ def delete_rich_text(data):
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
     except Exception:
-        return 400, "数据库连接失败"
+        return 400, bad_message("数据库连接失败")
 
     richtextitem = c.execute("SELECT * FROM RichTextInfo WHERE text_name = '%s'" % data["text_name"]).fetchone()
     if richtextitem is None:
         conn.close()
-        return 400, "文本不存在"
+        return 400, bad_message("文本不存在")
 
     c.execute("DELETE FROM RichTextInfo WHERE text_name = '%s'" % data["text_name"])
     conn.commit()
     conn.close()
 
-    return 200, "富文本删除成功"
+    return 200, normal_good_message("富文本删除成功")

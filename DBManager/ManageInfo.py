@@ -1,8 +1,12 @@
+import json
 import sqlite3
 from utils.HashNumber import hash_string
-from settings import DATABASE
+from settings import DATABASE, RESPONSE_GOOD_MESSAGE, RESPONSE_BAD_MESSAGE
 from datetime import datetime
 from utils.IFSuperUser import if_superuser
+from utils.GenerateToken import generate_token
+from utils.ResponseGoodMessage import login_good_message, normal_good_message, data_good_message
+from utils.ResponseBadMessage import bad_message
 
 
 def ManageRegist(data):
@@ -18,7 +22,7 @@ def ManageRegist(data):
         superuser INTEGER)''')
         c = conn.cursor()
     except Exception:
-        return 401, "链接失败"
+        return 401, bad_message("链接失败")
 
     username = data["user_name"]
     userpassword = data["user_password"]
@@ -28,25 +32,26 @@ def ManageRegist(data):
 
     if useritem is not None:
         conn.close()
-        return 400, "用户名已存在"
+        return 400, bad_message("用户名已存在")
 
     hashuserpassword = hash_string(userpassword)
     createtime = datetime.now()
     usercreatetime = createtime.strftime("%Y-%m-%d %H:%M:%S")
     data = (username, hashuserpassword, userphone, usercreatetime, 1)
-    c.execute("INSERT INTO UserInfo (user_name, user_password, user_phone, user_createtime, superuser) VALUES(?, ?, ?, ?, ?)", data)
+    c.execute(
+        "INSERT INTO UserInfo (user_name, user_password, user_phone, user_createtime, superuser) VALUES(?, ?, ?, ?, ?)",
+        data)
     conn.commit()
     conn.close()
-    return 200, "注册成功"
+    return 200, normal_good_message("注册成功")
 
 
-def ManageLogin(data, auth_token):
-
+def ManageLogin(data):
     try:
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
     except Exception:
-        return 401, "链接失败"
+        return 401, bad_message("链接失败")
 
     username = data["user_name"]
     userpassword = data["user_password"]
@@ -55,10 +60,10 @@ def ManageLogin(data, auth_token):
     useritem = c.execute("SELECT user_password FROM UserInfo WHERE user_name = '%s'" % username).fetchone()
     if useritem is None:
         conn.close()
-        return 400, "用户不存在"
+        return 400, bad_message("用户不存在")
     if not hashpassword == useritem[0]:
         conn.close()
-        return 400, "密码错误"
+        return 400, bad_message("密码错误")
 
     conn.execute('''
     CREATE TABLE IF NOT EXISTS PermissionInfo (
@@ -68,7 +73,8 @@ def ManageLogin(data, auth_token):
     update_permission VARCHAR)''')
 
     if not if_superuser(username):
-        return 400, "非管理员用户"
+        conn.close()
+        return 400, bad_message("非管理员用户")
 
     user_id = c.execute("SELECT user_id FROM UserInfo WHERE user_name = '%s'" % username).fetchone()[0]
     if c.execute("SELECT user_id FROM PermissionInfo WHERE user_id = '%d'" % user_id).fetchone() is None:
@@ -77,12 +83,13 @@ def ManageLogin(data, auth_token):
             (user_id, 1, 1, 1))
         conn.commit()
 
+    auth_token = generate_token(username, userpassword)
     user_item = c.execute("SELECT user_token FROM UserInfo WHERE user_name = '%s'" % username).fetchone()
     if user_item[0] is not None:
         conn.close()
-        return 200, "登录成功"
+        return 200, login_good_message("登录成功", user_item[0])
     c.execute("UPDATE UserInfo SET user_token = ? WHERE user_name = ?", (auth_token, username))
 
     conn.commit()
     conn.close()
-    return 200, "登录成功"
+    return 200, login_good_message("登录成功", auth_token)
