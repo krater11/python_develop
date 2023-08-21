@@ -11,18 +11,49 @@ from DBManager.UserInfo import UserRegist, UserLogin
 from DBManager.ImageInfo import UploadImage, GetImage, GetImageList, DeleteImage
 from DBManager.ManageInfo import ManageLogin, ManageRegist
 from DBManager.PermissionManage import get_superuser_status, get_user_permission, manage_permission
+from DBManager.TokenAuthorization import token_authorization
+from utils.ResponseGoodMessage import normal_good_message, data_good_message
+from utils.ResponseBadMessage import bad_message
 
 
 class Application(BaseHTTPRequestHandler):
     # 登录检验
     def basic_auth(self):
-        auth_header = self.headers.get('Authorization')
+        try:
+            auth_header = self.headers.get('Authorization')
+            auth_token = auth_header.split(' ')[-1]
+            username_password = base64.b64decode(auth_token).decode('utf-8')
+            username, password = username_password.split(':')
+            basic_auth_status = BasicAuth(username, password)
+            return username, basic_auth_status
+        except Exception:
+            return "", 400
 
-        auth_token = auth_header.split(' ')[-1]
-        username_password = base64.b64decode(auth_token).decode('utf-8')
-        username, password = username_password.split(':')
-        basic_auth_status, message = BasicAuth(username, password)
-        return username, basic_auth_status, message
+    def token_auth(self):
+        try:
+            authorization_header = self.headers.get('Authorization')
+            if authorization_header and authorization_header.startswith('Bearer '):
+                # 拆分令牌部分
+                token = authorization_header.split(' ', 1)[1]
+                username, status = token_authorization(token)
+            return username, status
+        except Exception:
+            return "", 400
+
+    def auth(self):
+        username1, status1 = self.basic_auth()
+        username2, status2 = self.token_auth()
+        if status1 == 400 and status2 == 400:
+            return "", 400, bad_message("身份验证失败")
+        elif status1 == 200 and status2 == 400:
+            return username1, 200, normal_good_message("身份验证成功")
+        elif status1 == 400 and status2 == 200:
+            return username2, 200, normal_good_message("身份验证成功")
+        else:
+            if username1 == username2:
+                return username1, 200, normal_good_message("身份验证成功")
+            else:
+                return "", 400, bad_message("用户名与Token不匹配，身份验证失败")
 
     # GET请求
     def do_GET(self):
@@ -37,7 +68,7 @@ class Application(BaseHTTPRequestHandler):
 
         # 获取照片
         elif path[0] == "/api/image_info":
-            username, status, message = self.basic_auth()
+            username, status, message = self.auth()
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['read_permission'])):
@@ -79,7 +110,7 @@ class Application(BaseHTTPRequestHandler):
 
         # 图片信息
         elif path[0] == "/api/image_list":
-            username, status, message = self.basic_auth()
+            username, status, message = self.auth()
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['read_permission'])):
@@ -108,7 +139,7 @@ class Application(BaseHTTPRequestHandler):
 
         # 查看所有用户权限
         elif path[0] == "/api/manage_permission_list":
-            username, status, message = self.basic_auth()
+            username, status, message = self.auth()
             if status == 200:
                 if bool(get_superuser_status(username)):
                     try:
@@ -136,7 +167,7 @@ class Application(BaseHTTPRequestHandler):
 
         # 富文本
         elif path[0] == "/api/rich_text":
-            username, status, message = self.basic_auth()
+            username, status, message = self.auth()
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['read_permission'])):
@@ -257,7 +288,7 @@ class Application(BaseHTTPRequestHandler):
 
         # 上传图片
         elif self.path == "/api/image_info":
-            username, status, message = self.basic_auth()
+            username, status, message = self.auth()
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['upload_permission'])):
@@ -294,7 +325,7 @@ class Application(BaseHTTPRequestHandler):
 
         # 上传富文本
         elif self.path == "/api/rich_text":
-            username, status, message = self.basic_auth()
+            username, status, message = self.auth()
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['upload_permission'])):
@@ -335,7 +366,7 @@ class Application(BaseHTTPRequestHandler):
     def do_PUT(self):
 
         if self.path == "/api/rich_text":
-            username, status, message = self.basic_auth()
+            username, status, message = self.auth()
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['update_permission'])):
@@ -376,7 +407,7 @@ class Application(BaseHTTPRequestHandler):
 
         # 删除富文本
         if self.path == "/api/rich_text":
-            username, status, message = self.basic_auth()
+            username, status, message = self.auth()
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['update_permission'])):
@@ -408,7 +439,7 @@ class Application(BaseHTTPRequestHandler):
 
         #删除图片
         elif self.path == "/api/image_info":
-            username, status, message = self.basic_auth()
+            username, status, message = self.auth()
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['update_permission'])):
