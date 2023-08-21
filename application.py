@@ -272,15 +272,16 @@ class Application(BaseHTTPRequestHandler):
 
         # 普通用户登录
         elif self.path == "/api/login":
-            try:
-                content_length = int(self.headers['Content-Length'])
-                post_data = self.rfile.read(content_length).decode("utf-8")
-                data = json.loads(post_data)
-                response_code, message = UserLogin(data)
-                bmessage = message.encode("utf-8")
-            except Exception:
-                response_code = 400
-                bmessage = "数据格式错误".encode("utf-8")
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length).decode("utf-8")
+            data = json.loads(post_data)
+            response_code, message = UserLogin(data)
+            bmessage = message.encode("utf-8")
+            # try:
+            #
+            # except Exception:
+            #     response_code = 400
+            #     bmessage = "数据格式错误".encode("utf-8")
             self.send_response(response_code)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
@@ -437,7 +438,7 @@ class Application(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(bmessage)
 
-        #删除图片
+        # 删除图片
         elif self.path == "/api/image_info":
             username, status, message = self.auth()
             if status == 200:

@@ -1,5 +1,6 @@
+import secrets
+
 import jwt
-from settings import SECRET_KEY
 
 
 def generate_token(username, password):
@@ -12,6 +13,8 @@ def generate_token(username, password):
     }
 
     # 生成令牌
+    SECRET_KEY = secrets.token_hex(64)
+
     token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
 
     return token

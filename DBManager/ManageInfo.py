@@ -7,6 +7,8 @@ from utils.IFSuperUser import if_superuser
 from utils.GenerateToken import generate_token
 from utils.ResponseGoodMessage import login_good_message, normal_good_message, data_good_message
 from utils.ResponseBadMessage import bad_message
+from utils.IfTime import if_expire_time
+from utils.AddTime import add_time
 
 
 def ManageRegist(data):
@@ -84,11 +86,20 @@ def ManageLogin(data):
         conn.commit()
 
     auth_token = generate_token(username, userpassword)
-    user_item = c.execute("SELECT user_token FROM UserInfo WHERE user_name = '%s'" % username).fetchone()
-    if user_item[0] is not None:
-        conn.close()
-        return 200, login_good_message("登录成功", user_item[0])
-    c.execute("UPDATE UserInfo SET user_token = ? WHERE user_name = ?", (auth_token, username))
+    user_item = c.execute("SELECT user_token FROM UserInfo WHERE user_name = '%s'" % username).fetchone()[0]
+    if user_item is not None:
+        token_expire_time = c.execute("SELECT token_expire_time FROM UserInfo WHERE user_name = '%s'" % username).fetchone()[0]
+        if if_expire_time(token_expire_time):
+            auth_token = generate_token(username, userpassword)
+            token_expire_time = add_time()
+            c.execute("UPDATE UserInfo SET user_token = ?, token_expire_time = ? WHERE user_name = ?", (auth_token, token_expire_time, username))
+            conn.commit()
+            conn.close()
+        else:
+            conn.close()
+        return 200, login_good_message("登录成功", user_item)
+    token_expire_time = add_time()
+    c.execute("UPDATE UserInfo SET user_token = ?, token_expire_time = ? WHERE user_name = ?", (auth_token, token_expire_time, username))
 
     conn.commit()
     conn.close()
