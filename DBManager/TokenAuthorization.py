@@ -9,12 +9,12 @@ def token_authorization(token):
         c = conn.cursor()
     except Exception:
         return "", 400
+    token_item = c.execute("SELECT token_expire_time FROM UserInfo WHERE user_token = '%s'" % token).fetchone()
 
-    tokenitem = c.execute("SELECT token_expire_time FROM UserInfo WHERE user_token = '%s'" % token).fetchone()[0]
-    if tokenitem is None:
+    if token_item is None:
         return "", 400
 
-    if if_expire_time(tokenitem):
+    if if_expire_time(token_item[0]):
         return "", 400
     username = c.execute("SELECT user_name FROM UserInfo WHERE user_token = '%s'" % token).fetchone()[0]
     return username, 200

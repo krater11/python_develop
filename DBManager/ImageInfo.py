@@ -67,7 +67,7 @@ def GetImage(imagename):
         item1 = c.execute("SELECT image_file FROM ImageInfo WHERE image_name = '%s'" % image_name)
         imageitem1 = item1.fetchone()
         root_path = ROOT_PATH.replace("\\", "/")
-        path = root_path + imageitem1[0] + "/" + image_name
+        path = imageitem1[0] + "/" + image_name
         path_list.append(path)
         message = path_list
     conn.close()

@@ -1,6 +1,9 @@
+import os
 import cgi
 import json
 import base64
+import socket
+from settings import ROOT_PATH
 from utils.GetImageInformation import get_image_information
 from utils.GetUrl import get_url_data
 from DBManager.AuthToken import BasicAuth
@@ -14,10 +17,12 @@ from DBManager.PermissionManage import get_superuser_status, get_user_permission
 from DBManager.TokenAuthorization import token_authorization
 from utils.ResponseGoodMessage import normal_good_message, data_good_message
 from utils.ResponseBadMessage import bad_message
+from DBManager.WebInformation import upload_webinformation
 
 
 class Application(BaseHTTPRequestHandler):
-    # 登录检验
+
+    # 用户民密码检验
     def basic_auth(self):
         try:
             auth_header = self.headers.get('Authorization')
@@ -29,17 +34,18 @@ class Application(BaseHTTPRequestHandler):
         except Exception:
             return "", 400
 
+    # Token验证
     def token_auth(self):
+
         try:
             authorization_header = self.headers.get('Authorization')
-            if authorization_header and authorization_header.startswith('Bearer '):
-                # 拆分令牌部分
-                token = authorization_header.split(' ', 1)[1]
-                username, status = token_authorization(token)
+            token = authorization_header[1:-1]
+            username, status = token_authorization(token)
             return username, status
         except Exception:
             return "", 400
 
+    # 身份验证
     def auth(self):
         username1, status1 = self.basic_auth()
         username2, status2 = self.token_auth()
@@ -64,7 +70,7 @@ class Application(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-            self.wfile.write(b"Welcome Home")
+            self.wfile.write("home".encode("utf-8"))
 
         # 获取照片
         elif path[0] == "/api/image_info":
@@ -72,17 +78,22 @@ class Application(BaseHTTPRequestHandler):
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['read_permission'])):
+
                     try:
-                        url = f"http://{self.headers['Host']}{self.path}"
-                        imagename = get_url_data(url)['image']
-                        response_code, message = GetImage(imagename)
+                        # url = f"http://{self.headers['Host']}{self.path}"
+                        # imagename = get_url_data(url)['image']
+                        imagename = "R.jpg"
+                        imagelist = []
+                        imagelist.append(imagename)
+                        response_code, message = GetImage(imagelist)
                         if response_code == 200:
                             self.send_response(response_code)
-                            self.send_header('Content-type', 'image/jpeg')
+                            self.send_header('Content-type', 'text/html')
                             self.end_headers()
-                            for i in message:
-                                with open(i, 'rb') as file:
-                                    self.wfile.write(file.read())
+                            self.wfile.write(message[0].encode("utf-8"))
+                            # for i in message:
+                            #     with open(i, 'rb') as file:
+                            #         self.wfile.write(file.read())
                         else:
                             bmessage = message.encode("utf-8")
                             self.send_response(response_code)
@@ -198,10 +209,12 @@ class Application(BaseHTTPRequestHandler):
 
         # 无响应页
         else:
-            self.send_response(404)
+            self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-            self.wfile.write(b'404 Not Found')
+            # with open(i, 'rb') as file:
+            #     self.wfile.write(file.read())
+            self.wfile.write(f"http://{self.headers['Host']}{path[0]}".encode("utf-8"))
 
     # POST请求
     def do_POST(self):
@@ -272,16 +285,15 @@ class Application(BaseHTTPRequestHandler):
 
         # 普通用户登录
         elif self.path == "/api/login":
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length).decode("utf-8")
-            data = json.loads(post_data)
-            response_code, message = UserLogin(data)
-            bmessage = message.encode("utf-8")
-            # try:
-            #
-            # except Exception:
-            #     response_code = 400
-            #     bmessage = "数据格式错误".encode("utf-8")
+            try:
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length).decode("utf-8")
+                data = json.loads(post_data)
+                response_code, message = UserLogin(data)
+                bmessage = message.encode("utf-8")
+            except Exception:
+                response_code = 400
+                bmessage = "数据格式错误".encode("utf-8")
             self.send_response(response_code)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
@@ -339,6 +351,39 @@ class Application(BaseHTTPRequestHandler):
                     except Exception:
                         response_code = 400
                         bmessage = "数据格式错误".encode("utf-8")
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+            else:
+                bmessage = message.encode("utf-8")
+                self.send_response(status)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write(bmessage)
+
+        # 上传富文本
+        elif self.path == "/api/web_information":
+            username, status, message = self.auth()
+            if status == 200:
+                data = permission_status(username)
+                if bool(int(data['upload_permission'])):
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length).decode("utf-8")
+                    data = json.loads(post_data)
+                    response_code, message = upload_webinformation(data)
+                    bmessage = message.encode("utf-8")
+                    # try:
+                    #
+                    # except Exception:
+                    #     response_code = 400
+                    #     bmessage = "数据格式错误".encode("utf-8")
                     self.send_response(response_code)
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()
@@ -474,7 +519,7 @@ class Application(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(bmessage)
 
-        #无响应页
+
         else:
             self.send_response(404)
             self.send_header('Content-type', 'text/html')
