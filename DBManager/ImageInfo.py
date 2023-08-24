@@ -1,6 +1,8 @@
 import json
 import os
 import sqlite3
+
+from DBManager.DBConnect import connectdb
 from utils.DictZip import dict_zip_multiple
 from settings import DATABASE, IMAGE_PATH, ROOT_PATH
 from utils.ResponseGoodMessage import normal_good_message, data_good_message
@@ -9,16 +11,17 @@ from utils.ResponseBadMessage import bad_message
 
 def UploadImage(imagefile, imagename):
     try:
-        conn = sqlite3.connect(DATABASE)
+        conn, c = connectdb()
         conn.execute('''
         CREATE TABLE IF NOT EXISTS ImageInfo (
         image_id INTEGER PRIMARY KEY AUTOINCREMENT,
         image_file VARCHAR (255),
         image_name VARCHAR)''')
-        c = conn.cursor()
     except Exception:
-        return 401, bad_message("链接失败")
+        return 400, bad_message("数据库连接失败")
 
+
+    print(imagefile)
     count = 0
     for i in imagename:
         image_file = imagefile[count]
@@ -48,8 +51,7 @@ def UploadImage(imagefile, imagename):
 
 def GetImage(imagename):
     try:
-        conn = sqlite3.connect("test.db")
-        c = conn.cursor()
+        conn, c = connectdb()
     except Exception:
         return 400, bad_message("数据库连接失败")
 
@@ -67,7 +69,7 @@ def GetImage(imagename):
         item1 = c.execute("SELECT image_file FROM ImageInfo WHERE image_name = '%s'" % image_name)
         imageitem1 = item1.fetchone()
         root_path = ROOT_PATH.replace("\\", "/")
-        path = imageitem1[0] + "/" + image_name
+        path = root_path + imageitem1[0] + "/" + image_name
         path_list.append(path)
         message = path_list
     conn.close()
@@ -76,8 +78,7 @@ def GetImage(imagename):
 
 def GetImageList():
     try:
-        conn = sqlite3.connect(DATABASE)
-        c = conn.cursor()
+        conn, c = connectdb()
     except Exception:
         return 400, bad_message("数据库连接失败")
 
@@ -91,8 +92,7 @@ def GetImageList():
 
 def DeleteImage(image_name):
     try:
-        conn = sqlite3.connect(DATABASE)
-        c = conn.cursor()
+        conn, c = connectdb()
     except Exception:
         return 400, bad_message("数据库连接失败")
 

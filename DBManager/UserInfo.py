@@ -1,6 +1,8 @@
 import json
 import sqlite3
 from datetime import datetime
+
+from DBManager.DBConnect import connectdb
 from utils.HashNumber import hash_string
 from settings import DATABASE, RESPONSE_BAD_MESSAGE, RESPONSE_GOOD_MESSAGE
 from utils.IFSuperUser import if_superuser
@@ -13,18 +15,17 @@ from utils.IfTime import if_expire_time
 
 def UserRegist(user_data):
     try:
-        conn = sqlite3.connect(DATABASE)
+        conn, c = connectdb()
         conn.execute('''
-        CREATE TABLE IF NOT EXISTS UserInfo (user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_name VARCHAR UNIQUE,
-    user_password VARCHAR,
-    user_phone INTEGER (11),
-    user_createtime DATETIME,
-    user_token VARCHAR (255),
-    superuser INTEGER)''')
-        c = conn.cursor()
+            CREATE TABLE IF NOT EXISTS UserInfo (user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_name VARCHAR UNIQUE,
+        user_password VARCHAR,
+        user_phone INTEGER (11),
+        user_createtime DATETIME,
+        user_token VARCHAR (255),
+        superuser INTEGER)''')
     except Exception:
-        return 400, bad_message("链接失败")
+        return 400, bad_message("数据库连接失败")
 
     username = user_data["user_name"]
     userpassword = user_data["user_password"]
@@ -47,12 +48,10 @@ def UserRegist(user_data):
 
 
 def UserLogin(data):
-
     try:
-        conn = sqlite3.connect(DATABASE)
-        c = conn.cursor()
+        conn, c = connectdb()
     except Exception:
-        return 400, bad_message("链接失败")
+        return 400, bad_message("数据库连接失败")
 
     username = data["user_name"]
     userpassword = data["user_password"]
@@ -99,9 +98,10 @@ def UserLogin(data):
             c.execute("UPDATE UserInfo SET user_token = ?, token_expire_time = ? WHERE user_name = ?", (auth_token, token_expire_time, username))
             conn.commit()
             conn.close()
+            return 200, login_good_message("登录成功", auth_token)
         else:
             conn.close()
-        return 200, login_good_message("登录成功", user_item)
+            return 200, login_good_message("登录成功", user_item)
     token_expire_time = add_time()
     c.execute("UPDATE UserInfo SET user_token = ?, token_expire_time = ? WHERE user_name = ?", (auth_token, token_expire_time, username))
 
@@ -112,10 +112,9 @@ def UserLogin(data):
 
 def GetUserId(username):
     try:
-        conn = sqlite3.connect(DATABASE)
-        c = conn.cursor()
+        conn, c = connectdb()
     except Exception:
-        print("error")
+        return 400, bad_message("数据库连接失败")
 
     userid = c.execute("SELECT user_id FROM UserInfo WHERE user_name = '%s'" % username).fetchone()[0]
 

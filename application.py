@@ -17,8 +17,8 @@ from DBManager.PermissionManage import get_superuser_status, get_user_permission
 from DBManager.TokenAuthorization import token_authorization
 from utils.ResponseGoodMessage import normal_good_message, data_good_message
 from utils.ResponseBadMessage import bad_message
-from DBManager.WebInformation import upload_webinformation
-
+from DBManager.WebInformation import upload_webinformation, get_web_information
+from utils.ContentType import content_type
 
 class Application(BaseHTTPRequestHandler):
 
@@ -78,22 +78,18 @@ class Application(BaseHTTPRequestHandler):
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['read_permission'])):
-
                     try:
-                        # url = f"http://{self.headers['Host']}{self.path}"
-                        # imagename = get_url_data(url)['image']
-                        imagename = "R.jpg"
-                        imagelist = []
-                        imagelist.append(imagename)
-                        response_code, message = GetImage(imagelist)
+                        url = f"http://{self.headers['Host']}{self.path}"
+                        imagename = get_url_data(url)['image']
+                        response_code, message = GetImage(imagename)
+                        for i in message:
+                            with open(i, "rb") as f:
+                                data = f.read()
                         if response_code == 200:
                             self.send_response(response_code)
-                            self.send_header('Content-type', 'text/html')
+                            self.send_header('Content-type', 'image/jpeg')
                             self.end_headers()
-                            self.wfile.write(message[0].encode("utf-8"))
-                            # for i in message:
-                            #     with open(i, 'rb') as file:
-                            #         self.wfile.write(file.read())
+                            self.wfile.write(base64.b64encode(data))
                         else:
                             bmessage = message.encode("utf-8")
                             self.send_response(response_code)
@@ -207,14 +203,47 @@ class Application(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(bmessage)
 
+        elif path[0] == "/api/web_information":
+            username, status, message = self.auth()
+            if status == 200:
+                data = permission_status(username)
+                if bool(int(data['read_permission'])):
+                    try:
+                        response_code, message = get_web_information()
+                        bmessage = message.encode("utf-8")
+                        self.send_response(response_code)
+                        self.send_header('Content-type', 'text/html')
+                        self.end_headers()
+                        self.wfile.write(bmessage)
+                    except Exception:
+                        self.send_response(400)
+                        self.send_header('Content-type', 'text/html')
+                        self.end_headers()
+                        self.wfile.write("数据格式错误".encode)
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+            else:
+                bmessage = message.encode("utf-8")
+                self.send_response(status)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write(bmessage)
+
         # 无响应页
         else:
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            # with open(i, 'rb') as file:
-            #     self.wfile.write(file.read())
-            self.wfile.write(f"http://{self.headers['Host']}{path[0]}".encode("utf-8"))
+            dir_path = path[0].split(".")[0].split("/")
+            if dir_path[1] == "media":
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+            else:
+                self.send_response(301)
+                self.send_header("Location", "/")
+                self.end_headers()
 
     # POST请求
     def do_POST(self):
@@ -368,22 +397,29 @@ class Application(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(bmessage)
 
-        # 上传富文本
+        # 上传网站信息
         elif self.path == "/api/web_information":
             username, status, message = self.auth()
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['upload_permission'])):
-                    content_length = int(self.headers['Content-Length'])
-                    post_data = self.rfile.read(content_length).decode("utf-8")
-                    data = json.loads(post_data)
-                    response_code, message = upload_webinformation(data)
-                    bmessage = message.encode("utf-8")
-                    # try:
-                    #
-                    # except Exception:
-                    #     response_code = 400
-                    #     bmessage = "数据格式错误".encode("utf-8")
+                    try:
+                        content_type, _ = cgi.parse_header(self.headers['content-type'])
+                        form = cgi.FieldStorage(
+                            fp=self.rfile,
+                            headers=self.headers,
+                            environ={'REQUEST_METHOD': 'POST'}
+                        )
+                        file_field = form['image']
+                        data = eval(form["text"].value)
+                        _, imagefile = get_image_information(file_field)
+                        if file_field.value == "":
+                            imagefile = [None]
+                        response_code, message = upload_webinformation(imagefile, data)
+                        bmessage = message.encode("utf-8")
+                    except Exception:
+                        response_code = 400
+                        bmessage = "数据格式错误".encode("utf-8")
                     self.send_response(response_code)
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()
@@ -403,10 +439,9 @@ class Application(BaseHTTPRequestHandler):
 
         # 无响应页
         else:
-            self.send_response(404)
-            self.send_header('Content-type', 'text/html')
+            self.send_response(302)
+            self.send_header("Location", "/")
             self.end_headers()
-            self.wfile.write(b'404 Not Found')
 
     # UPDATE请求
     def do_PUT(self):

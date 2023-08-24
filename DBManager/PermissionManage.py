@@ -1,5 +1,7 @@
 import json
 import sqlite3
+
+from DBManager.DBConnect import connectdb
 from settings import DATABASE
 from utils.GetID import get_id
 from utils.DictZip import dict_zip_multiple
@@ -48,10 +50,9 @@ def get_user_permission():
 def manage_permission(data):
 
     try:
-        conn = sqlite3.connect(DATABASE)
-        c = conn.cursor()
+        conn, c = connectdb()
     except Exception:
-        return 400, bad_message("连接失败")
+        return 400, bad_message("数据库连接失败")
 
     username = data['user_name']
     userid = GetUserId(username)

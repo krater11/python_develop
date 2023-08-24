@@ -1,4 +1,6 @@
 import sqlite3
+
+from DBManager.DBConnect import connectdb
 from settings import DATABASE
 from utils.HashNumber import hash_string
 from utils.ResponseBadMessage import bad_message
@@ -8,8 +10,7 @@ from utils.ResponseGoodMessage import normal_good_message
 def BasicAuth(user_name,user_password):
 
     try:
-        conn = sqlite3.connect(DATABASE)
-        c = conn.cursor()
+        conn, c = connectdb()
     except Exception:
         return 400
 

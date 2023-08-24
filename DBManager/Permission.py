@@ -1,14 +1,16 @@
 import sqlite3
+
+from DBManager.DBConnect import connectdb
 from utils.DictZip import dict_zip
 from settings import DATABASE
+from utils.ResponseBadMessage import bad_message
 
 
 def permission_status(username):
     try:
-        conn = sqlite3.connect(DATABASE)
-        c = conn.cursor()
+        conn, c = connectdb()
     except Exception:
-        return 400, "连接失败"
+        return 400, bad_message("数据库连接失败")
 
     item = c.execute("SELECT user_id FROM UserInfo WHERE user_name = '%s'" % username)
     useritem = item.fetchone()

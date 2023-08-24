@@ -1,4 +1,6 @@
 import sqlite3
+
+from DBManager.DBConnect import connectdb
 from settings import DATABASE
 from utils.DictZip import dict_zip
 import json
@@ -8,7 +10,7 @@ from utils.ResponseBadMessage import bad_message
 
 def upload_rich_text(data):
     try:
-        conn = sqlite3.connect(DATABASE)
+        conn, c = connectdb()
         conn.execute('''
         CREATE TABLE IF NOT EXISTS RichTextInfo (
         text_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,9 +22,9 @@ def upload_rich_text(data):
         text_italic VARCHAR
         )
         ''')
-        c = conn.cursor()
     except Exception:
-        return 400, bad_message("连接失败")
+        return 400, bad_message("数据库连接失败")
+
     text_name = data["text_name"]
     text = data["text"]
     text_font = data["text_font"]
@@ -47,10 +49,9 @@ def upload_rich_text(data):
 
 def get_rich_text(textname):
     try:
-        conn = sqlite3.connect(DATABASE)
-        c = conn.cursor()
+        conn, c = connectdb()
     except Exception:
-        return 400, bad_message("连接失败")
+        return 400, bad_message("数据库连接失败")
 
     textitem = c.execute("SELECT * FROM RichTextInfo WHERE text_name = '%s'" % textname).fetchall()
     column_names = [description[0] for description in c.description]
@@ -61,10 +62,9 @@ def get_rich_text(textname):
 
 def update_rich_text(data):
     try:
-        conn = sqlite3.connect(DATABASE)
-        c = conn.cursor()
+        conn, c = connectdb()
     except Exception:
-        return 400, bad_message("连接失败")
+        return 400, bad_message("数据库连接失败")
 
     richtextitem = c.execute("SELECT * FROM RichTextInfo WHERE text_name = '%s'" % data["text_name"]).fetchone()
     if richtextitem is None:
@@ -93,8 +93,7 @@ def update_rich_text(data):
 
 def delete_rich_text(data):
     try:
-        conn = sqlite3.connect(DATABASE)
-        c = conn.cursor()
+        conn, c = connectdb()
     except Exception:
         return 400, bad_message("数据库连接失败")
 
