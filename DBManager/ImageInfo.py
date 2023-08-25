@@ -20,8 +20,6 @@ def UploadImage(imagefile, imagename):
     except Exception:
         return 400, bad_message("数据库连接失败")
 
-
-    print(imagefile)
     count = 0
     for i in imagename:
         image_file = imagefile[count]

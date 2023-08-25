@@ -3,6 +3,9 @@ import cgi
 import json
 import base64
 import socket
+import tempfile
+
+from DBManager.Advertisement import upload_ad
 from settings import ROOT_PATH
 from utils.GetImageInformation import get_image_information
 from utils.GetUrl import get_url_data
@@ -19,6 +22,7 @@ from utils.ResponseGoodMessage import normal_good_message, data_good_message
 from utils.ResponseBadMessage import bad_message
 from DBManager.WebInformation import upload_webinformation, get_web_information
 from utils.ContentType import content_type
+
 
 class Application(BaseHTTPRequestHandler):
 
@@ -237,13 +241,31 @@ class Application(BaseHTTPRequestHandler):
         else:
             dir_path = path[0].split(".")[0].split("/")
             if dir_path[1] == "media":
-                self.send_response(200)
+                contenttype = content_type(path[0].split(".")[1])
+                root_path = ROOT_PATH.replace("\\", "/")
+                static_path = "/".join(path[0].split("/")[:-1])
+                try:
+                    with open(root_path + path[0], 'rb') as file:
+                        data = file.read()
+                    with tempfile.NamedTemporaryFile(delete=True, dir=root_path + static_path + "/") as temp_file:
+                        temp_file.write(data)
+                        temp_file.flush()
+                        temp_file.seek(0)
+                        file_dat = temp_file.read()
+                        self.send_response(200)
+                        self.send_header('Content-type', f"{contenttype}")
+                        self.end_headers()
+                        self.wfile.write(file_dat)
+                except Exception:
+                    self.send_response(404)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(b"404 NOT FOUND")
+            else:
+                self.send_response(404)
                 self.send_header('Content-type', 'text/html')
                 self.end_headers()
-            else:
-                self.send_response(301)
-                self.send_header("Location", "/")
-                self.end_headers()
+                self.wfile.write(b"404 NOT FOUND")
 
     # POST请求
     def do_POST(self):
@@ -437,11 +459,56 @@ class Application(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(bmessage)
 
+        elif self.path == "/api/upload_ad":
+            username, status, message = self.auth()
+            if status == 200:
+                data = permission_status(username)
+                if bool(int(data['upload_permission'])):
+                    content_type, _ = cgi.parse_header(self.headers['content-type'])
+                    form = cgi.FieldStorage(
+                        fp=self.rfile,
+                        headers=self.headers,
+                        environ={'REQUEST_METHOD': 'POST'}
+                    )
+                    file_field = form['image']
+                    data = eval(form["text"].value)
+                    imagename, imagefile = get_image_information(file_field)
+                    if len(imagename) > 1:
+                        self.send_response(400)
+                        self.send_header('Content-type', 'text/html')
+                        self.end_headers()
+                        self.wfile.write(bad_message("数据格式错误"))
+                    else:
+                        response_code, message = upload_ad(imagename[0], imagefile[0], data)
+                        bmessage = message.encode("utf-8")
+                    # try:
+                    #
+                    # except Exception:
+                    #     response_code = 400
+                    #     bmessage = "数据格式错误".encode("utf-8")
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+            else:
+                bmessage = message.encode("utf-8")
+                self.send_response(status)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write(bmessage)
+
         # 无响应页
         else:
-            self.send_response(302)
-            self.send_header("Location", "/")
+            self.send_response(404)
+            self.send_header('Content-type', 'text/html')
             self.end_headers()
+            self.wfile.write(b"404 NOT FOUND")
 
     # UPDATE请求
     def do_PUT(self):
