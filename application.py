@@ -4,8 +4,7 @@ import json
 import base64
 import socket
 import tempfile
-
-from DBManager.Advertisement import upload_ad
+from DBManager.Advertisement import upload_ad, get_ad_information, delete_ad_information, update_ad_information
 from settings import ROOT_PATH
 from utils.GetImageInformation import get_image_information
 from utils.GetUrl import get_url_data
@@ -223,7 +222,37 @@ class Application(BaseHTTPRequestHandler):
                         self.send_response(400)
                         self.send_header('Content-type', 'text/html')
                         self.end_headers()
-                        self.wfile.write("数据格式错误".encode)
+                        self.wfile.write("数据格式错误".encode("utf-8"))
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+            else:
+                bmessage = message.encode("utf-8")
+                self.send_response(status)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write(bmessage)
+
+        elif path[0] == "/api/ad_information":
+            username, status, message = self.auth()
+            if status == 200:
+                data = permission_status(username)
+                if bool(int(data['read_permission'])):
+                    try:
+                        response_code, message = get_ad_information()
+                        bmessage = message.encode("utf-8")
+                        self.send_response(response_code)
+                        self.send_header('Content-type', 'text/html')
+                        self.end_headers()
+                        self.wfile.write(bmessage)
+                    except Exception:
+                        self.send_response(400)
+                        self.send_header('Content-type', 'text/html')
+                        self.end_headers()
+                        self.wfile.write("数据格式错误".encode("utf-8"))
                 else:
                     bmessage = "用户缺少权限".encode("utf-8")
                     self.send_response(400)
@@ -459,33 +488,32 @@ class Application(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(bmessage)
 
-        elif self.path == "/api/upload_ad":
+        elif self.path == "/api/ad_information":
             username, status, message = self.auth()
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['upload_permission'])):
-                    content_type, _ = cgi.parse_header(self.headers['content-type'])
-                    form = cgi.FieldStorage(
-                        fp=self.rfile,
-                        headers=self.headers,
-                        environ={'REQUEST_METHOD': 'POST'}
-                    )
-                    file_field = form['image']
-                    data = eval(form["text"].value)
-                    imagename, imagefile = get_image_information(file_field)
-                    if len(imagename) > 1:
-                        self.send_response(400)
-                        self.send_header('Content-type', 'text/html')
-                        self.end_headers()
-                        self.wfile.write(bad_message("数据格式错误"))
-                    else:
-                        response_code, message = upload_ad(imagename[0], imagefile[0], data)
-                        bmessage = message.encode("utf-8")
-                    # try:
-                    #
-                    # except Exception:
-                    #     response_code = 400
-                    #     bmessage = "数据格式错误".encode("utf-8")
+                    try:
+                        content_type, _ = cgi.parse_header(self.headers['content-type'])
+                        form = cgi.FieldStorage(
+                            fp=self.rfile,
+                            headers=self.headers,
+                            environ={'REQUEST_METHOD': 'POST'}
+                        )
+                        file_field = form['image']
+                        data = eval(form["text"].value)
+                        imagename, imagefile = get_image_information(file_field)
+                        if len(imagename) > 1:
+                            self.send_response(400)
+                            self.send_header('Content-type', 'text/html')
+                            self.end_headers()
+                            self.wfile.write(bad_message("数据格式错误"))
+                        else:
+                            response_code, message = upload_ad(imagename[0], imagefile[0], data)
+                            bmessage = message.encode("utf-8")
+                    except Exception:
+                        response_code = 400
+                        bmessage = "数据格式错误".encode("utf-8")
                     self.send_response(response_code)
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()
@@ -543,6 +571,47 @@ class Application(BaseHTTPRequestHandler):
                 self.send_header('Content-type', 'text/html')
                 self.end_headers()
                 self.wfile.write(bmessage)
+
+        elif self.path == "/api/ad_information":
+            username, status, message = self.auth()
+            if status == 200:
+                data = permission_status(username)
+                if bool(int(data['upload_permission'])):
+                    try:
+                        content_type, _ = cgi.parse_header(self.headers['content-type'])
+                        form = cgi.FieldStorage(
+                            fp=self.rfile,
+                            headers=self.headers,
+                            environ={'REQUEST_METHOD': 'POST'}
+                        )
+                        file_field = form['image']
+                        data = eval(form["text"].value)
+                        if file_field.value == "" or file_field.value == "null":
+                            response_code, message = update_ad_information("", "", data)
+                            bmessage = message.encode("utf-8")
+                        else:
+                            imagename, imagefile = get_image_information(file_field)
+                            if len(imagename) > 1:
+                                self.send_response(400)
+                                self.send_header('Content-type', 'text/html')
+                                self.end_headers()
+                                self.wfile.write(bad_message("数据格式错误"))
+                            else:
+                                response_code, message = update_ad_information(imagename[0], imagefile[0], data)
+                                bmessage = message.encode("utf-8")
+                    except Exception:
+                        response_code = 400
+                        bmessage = "数据格式错误".encode("utf-8")
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
 
         # 无响应页
         else:
@@ -621,6 +690,37 @@ class Application(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(bmessage)
 
+        elif self.path == "/api/ad_information":
+            username, status, message = self.auth()
+            if status == 200:
+                data = permission_status(username)
+                if bool(int(data['update_permission'])):
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length).decode("utf-8")
+                    data = json.loads(post_data)
+                    response_code, message = delete_ad_information(data)
+                    bmessage = message.encode("utf-8")
+                    # try:
+                    #
+                    # except Exception:
+                    #     response_code = 400
+                    #     bmessage = "数据格式错误".encode("utf-8")
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+            else:
+                bmessage = message.encode("utf-8")
+                self.send_response(status)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write(bmessage)
 
         else:
             self.send_response(404)
