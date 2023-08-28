@@ -25,14 +25,13 @@ def upload_ad(imagename, imagefile, data):
         text_id INTEGER PRIMARY KEY AUTOINCREMENT,
         title VARCHAR,
         content VARCHAR,
-        image_name VARCHAR REFERENCES Ad_image (image_name))''')
+        image_name VARCHAR REFERENCES Ad_image (image_name),
+        type VARCHAR)''')
     except Exception:
         return 400, bad_message("数据库连接失败")
 
+    type = data["type"]
     title = data["title"]
-    titleitem = c.execute("SELECT text_id FROM Ad_information WHERE title = '%s'" % title).fetchone()
-    if titleitem is not None:
-        return 400, bad_message("title已存在")
     content = data["content"]
     root_path = ROOT_PATH.replace("\\", "/")
     file_type = imagename.split(".")[-1]
@@ -43,27 +42,26 @@ def upload_ad(imagename, imagefile, data):
     real_path = root_path + image_path
     Path(real_path.replace("/", "\\")).mkdir(parents=True, exist_ok=True)
     image_data = (imagefile_name, image_path)
-    information_data = (title, content, imagefile_name)
+    information_data = (title, content, imagefile_name, type)
     with open(root_path+image_path+imagefile_name, 'wb') as f:
         f.write(imagefile)
     c.execute("INSERT INTO Ad_image (image_name, image_path) VALUES (?, ?)", image_data)
-    c.execute("INSERT INTO Ad_information (title, content, image_name) VALUES (?, ?, ?)", information_data)
+    c.execute("INSERT INTO Ad_information (title, content, image_name, type) VALUES (?, ?, ?, ?)", information_data)
     conn.commit()
     conn.close()
     return 200, normal_good_message("上传成功")
 
 
-def get_ad_information():
+def get_ad_information(data):
     try:
         conn,c = connectdb()
     except Exception:
         return 400, bad_message("数据库连接失败")
-
-    aditem = c.execute("SELECT * FROM Ad_information").fetchall()
+    aditem = c.execute("SELECT * FROM Ad_information WHERE type = '%s'" % data).fetchall()
     ad_item = tuple_list(aditem)
     column_names = [description[0] for description in c.description]
     column = update_list(column_names, "image_name", "image_item")
-    dict_data = dict_zip_multiple(aditem,column)
+    dict_data = dict_zip_multiple(ad_item,column)
     ip = socket.gethostbyname(socket.gethostname())
     for i in dict_data:
         image_path = c.execute("SELECT image_path FROM Ad_image WHERE image_name = '%s'" % i["image_item"]).fetchone()
@@ -78,12 +76,13 @@ def delete_ad_information(data):
         conn, c = connectdb()
     except Exception:
         return 400, bad_message("数据库连接失败")
-    id = data["text_id"]
-    aditem = c.execute(f"SELECT image_name FROM Ad_information WHERE text_id = {id}").fetchone()[0]
+
+    data = int(data)
+    aditem = c.execute(f"SELECT image_name FROM Ad_information WHERE text_id = {data}").fetchone()[0]
     path = c.execute("SELECT image_path FROM Ad_image WHERE image_name = '%s'" % aditem).fetchone()[0]
     root_path = ROOT_PATH.replace("\\", "/")
     real_path = root_path + path + aditem
-    c.execute("DELETE FROM Ad_information WHERE text_id ='%d'" % id)
+    c.execute("DELETE FROM Ad_information WHERE text_id ='%d'" % data)
     c.execute("DELETE FROM Ad_image WHERE image_name = '%s'" % aditem)
     os.remove(real_path)
     conn.commit()
@@ -100,8 +99,9 @@ def update_ad_information(imagename, imagefile, data):
     text_id = data["text_id"]
     title = data["title"]
     content = data["content"]
+    type = data["type"]
     if imagename == "" and imagefile == "":
-        c.execute(f"UPDATE Ad_information SET title={title} , content={content} WHERE text_id={text_id}")
+        c.execute(f"UPDATE Ad_information SET title={title} , content={content}, type={type} WHERE text_id={text_id}")
         conn.commit()
     else:
         image_name = c.execute(f"SELECT image_name FROM Ad_information WHERE text_id={text_id}").fetchone()[0]
@@ -110,7 +110,7 @@ def update_ad_information(imagename, imagefile, data):
         real_path = root_path + image_path + image_name
         with open(real_path, 'wb') as file:
             file.write(imagefile)
-        c.execute(f"UPDATE Ad_information SET title={title} , content={content} WHERE text_id={text_id}")
+        c.execute(f"UPDATE Ad_information SET title={title} , content={content}, type={type} WHERE text_id={text_id}")
         conn.commit()
     conn.commit()
     conn.close()

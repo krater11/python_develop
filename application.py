@@ -242,7 +242,9 @@ class Application(BaseHTTPRequestHandler):
                 data = permission_status(username)
                 if bool(int(data['read_permission'])):
                     try:
-                        response_code, message = get_ad_information()
+                        url = f"http://{self.headers['Host']}{self.path}"
+                        type_class = get_url_data(url)['type'][0]
+                        response_code, message = get_ad_information(type_class)
                         bmessage = message.encode("utf-8")
                         self.send_response(response_code)
                         self.send_header('Content-type', 'text/html')
@@ -393,8 +395,11 @@ class Application(BaseHTTPRequestHandler):
                             environ={'REQUEST_METHOD': 'POST'}
                         )
                         file_field = form['image']
-                        imagename, imagefile = get_image_information(file_field)
-                        response_code, message = UploadImage(imagefile, imagename)
+                        if file_field == "":
+                            response_code, message = UploadImage("", "", data)
+                        else:
+                            imagename, imagefile = get_image_information(file_field)
+                            response_code, message = UploadImage(imagefile, imagename, data)
                         bmessage = message.encode("utf-8")
                     except Exception:
                         response_code = 400
@@ -423,9 +428,15 @@ class Application(BaseHTTPRequestHandler):
                 data = permission_status(username)
                 if bool(int(data['upload_permission'])):
                     try:
-                        content_length = int(self.headers['Content-Length'])
-                        post_data = self.rfile.read(content_length).decode("utf-8")
-                        data = json.loads(post_data)
+                        content_type, _ = cgi.parse_header(self.headers['content-type'])
+                        form = cgi.FieldStorage(
+                            fp=self.rfile,
+                            headers=self.headers,
+                            environ={'REQUEST_METHOD': 'POST'}
+                        )
+                        file_field = form['image']
+                        data = eval(form["text"].value)
+                        imagename, imagefile = get_image_information(file_field)
                         response_code, message = upload_rich_text(data)
                         bmessage = message.encode("utf-8")
                     except Exception:
@@ -695,16 +706,14 @@ class Application(BaseHTTPRequestHandler):
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['update_permission'])):
-                    content_length = int(self.headers['Content-Length'])
-                    post_data = self.rfile.read(content_length).decode("utf-8")
-                    data = json.loads(post_data)
-                    response_code, message = delete_ad_information(data)
-                    bmessage = message.encode("utf-8")
-                    # try:
-                    #
-                    # except Exception:
-                    #     response_code = 400
-                    #     bmessage = "数据格式错误".encode("utf-8")
+                    try:
+                        content_length = int(self.headers['Content-Length'])
+                        post_data = self.rfile.read(content_length).decode("utf-8")
+                        response_code, message = delete_ad_information(post_data)
+                        bmessage = message.encode("utf-8")
+                    except Exception:
+                        response_code = 400
+                        bmessage = "数据格式错误".encode("utf-8")
                     self.send_response(response_code)
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()
