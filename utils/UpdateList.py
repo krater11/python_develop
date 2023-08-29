@@ -1,4 +1,4 @@
-def update_list(a,b,c):
+def update_list(a, b, c):
     try:
         count = 0
         for i in a:
@@ -9,6 +9,7 @@ def update_list(a,b,c):
         return a
     except Exception:
         print("error")
+
 
 def tuple_list(a):
     count = 0

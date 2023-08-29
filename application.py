@@ -11,7 +11,8 @@ from utils.GetUrl import get_url_data
 from DBManager.AuthToken import BasicAuth
 from http.server import BaseHTTPRequestHandler
 from DBManager.Permission import permission_status
-from DBManager.RichTextInfo import upload_rich_text, get_rich_text, update_rich_text, delete_rich_text
+from DBManager.RichTextInfo import upload_rich_text, get_rich_text, update_rich_text, delete_rich_text, \
+    delete_rich_text_image
 from DBManager.UserInfo import UserRegist, UserLogin
 from DBManager.ImageInfo import UploadImage, GetImage, GetImageList, DeleteImage
 from DBManager.ManageInfo import ManageLogin, ManageRegist
@@ -183,8 +184,8 @@ class Application(BaseHTTPRequestHandler):
                 if bool(int(data['read_permission'])):
                     try:
                         url = f"http://{self.headers['Host']}{self.path}"
-                        text_name = get_url_data(url)['text'][0]
-                        response_code, message = get_rich_text(text_name)
+                        rich_text_type = get_url_data(url)['type'][0]
+                        response_code, message = get_rich_text(rich_text_type)
                         bmessage = message.encode("utf-8")
                     except Exception:
                         response_code = 400
@@ -437,7 +438,7 @@ class Application(BaseHTTPRequestHandler):
                         file_field = form['image']
                         data = eval(form["text"].value)
                         imagename, imagefile = get_image_information(file_field)
-                        response_code, message = upload_rich_text(data)
+                        response_code, message = upload_rich_text(imagename, imagefile, data)
                         bmessage = message.encode("utf-8")
                     except Exception:
                         response_code = 400
@@ -558,10 +559,19 @@ class Application(BaseHTTPRequestHandler):
                 data = permission_status(username)
                 if bool(int(data['update_permission'])):
                     try:
-                        content_length = int(self.headers['Content-Length'])
-                        post_data = self.rfile.read(content_length).decode("utf-8")
-                        data = json.loads(post_data)
-                        response_code, message = update_rich_text(data)
+                        content_type, _ = cgi.parse_header(self.headers['content-type'])
+                        form = cgi.FieldStorage(
+                            fp=self.rfile,
+                            headers=self.headers,
+                            environ={'REQUEST_METHOD': 'POST'}
+                        )
+                        file_field = form['image']
+                        data = eval(form["text"].value)
+                        imagename, imagefile = get_image_information(file_field)
+                        if file_field == "" or file_field == "null":
+                            response_code, message = update_rich_text("", "", data)
+                        else:
+                            response_code, message = update_rich_text(imagename, imagefile, data)
                         bmessage = message.encode("utf-8")
                     except Exception:
                         response_code = 400
@@ -639,15 +649,23 @@ class Application(BaseHTTPRequestHandler):
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['update_permission'])):
-                    try:
-                        content_length = int(self.headers['Content-Length'])
-                        post_data = self.rfile.read(content_length).decode("utf-8")
-                        data = json.loads(post_data)
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length).decode("utf-8")
+                    data = json.loads(post_data)
+                    key = list(data.keys())
+                    if key[0] == "text_id":
                         response_code, message = delete_rich_text(data)
-                        bmessage = message.encode("utf-8")
-                    except Exception:
+                    elif key[0] == "url":
+                        response_code, message = delete_rich_text_image(data)
+                    else:
                         response_code = 400
-                        bmessage = "数据格式错误".encode("utf-8")
+                        message = bad_message("数据错误")
+                    bmessage = message.encode("utf-8")
+                    # try:
+                    #
+                    # except Exception:
+                    #     response_code = 400
+                    #     bmessage = "数据格式错误".encode("utf-8")
                     self.send_response(response_code)
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()

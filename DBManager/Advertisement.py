@@ -61,7 +61,7 @@ def get_ad_information(data):
     ad_item = tuple_list(aditem)
     column_names = [description[0] for description in c.description]
     column = update_list(column_names, "image_name", "image_item")
-    dict_data = dict_zip_multiple(ad_item,column)
+    dict_data = dict_zip_multiple(ad_item, column)
     ip = socket.gethostbyname(socket.gethostname())
     for i in dict_data:
         image_path = c.execute("SELECT image_path FROM Ad_image WHERE image_name = '%s'" % i["image_item"]).fetchone()
