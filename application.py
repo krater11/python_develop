@@ -5,16 +5,15 @@ import base64
 import socket
 import tempfile
 from DBManager.Advertisement import upload_ad, get_ad_information, delete_ad_information, update_ad_information
+from DBManager.File import upload_file, delete_file
 from settings import ROOT_PATH
-from utils.GetImageInformation import get_image_information
+from utils.GetFileInformation import get_file_information
 from utils.GetUrl import get_url_data
 from DBManager.AuthToken import BasicAuth
 from http.server import BaseHTTPRequestHandler
 from DBManager.Permission import permission_status
-from DBManager.RichTextInfo import upload_rich_text, get_rich_text, update_rich_text, delete_rich_text, \
-    delete_rich_text_image
+from DBManager.RichTextInfo import upload_rich_text, get_rich_text, update_rich_text, delete_rich_text
 from DBManager.UserInfo import UserRegist, UserLogin
-from DBManager.ImageInfo import UploadImage, GetImage, GetImageList, DeleteImage
 from DBManager.ManageInfo import ManageLogin, ManageRegist
 from DBManager.PermissionManage import get_superuser_status, get_user_permission, manage_permission
 from DBManager.TokenAuthorization import token_authorization
@@ -75,78 +74,6 @@ class Application(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             self.wfile.write("home".encode("utf-8"))
-
-        # 获取照片
-        elif path[0] == "/api/image_info":
-            username, status, message = self.auth()
-            if status == 200:
-                data = permission_status(username)
-                if bool(int(data['read_permission'])):
-                    try:
-                        url = f"http://{self.headers['Host']}{self.path}"
-                        imagename = get_url_data(url)['image']
-                        response_code, message = GetImage(imagename)
-                        for i in message:
-                            with open(i, "rb") as f:
-                                data = f.read()
-                        if response_code == 200:
-                            self.send_response(response_code)
-                            self.send_header('Content-type', 'image/jpeg')
-                            self.end_headers()
-                            self.wfile.write(base64.b64encode(data))
-                        else:
-                            bmessage = message.encode("utf-8")
-                            self.send_response(response_code)
-                            self.send_header('Content-type', 'text/html')
-                            self.end_headers()
-                            self.wfile.write(bmessage)
-                    except Exception:
-                        bmessage = "数据格式错误".encode("utf-8")
-                        self.send_response(400)
-                        self.send_header('Content-type', 'text/html')
-                        self.end_headers()
-                        self.wfile.write(bmessage)
-                else:
-                    bmessage = "用户缺少权限".encode("utf-8")
-                    self.send_response(400)
-                    self.send_header('Content-type', 'text/html')
-                    self.end_headers()
-                    self.wfile.write(bmessage)
-            else:
-                bmessage = message.encode("utf-8")
-                self.send_response(status)
-                self.send_header('Content-type', 'text/html')
-                self.end_headers()
-                self.wfile.write(bmessage)
-
-        # 图片信息
-        elif path[0] == "/api/image_list":
-            username, status, message = self.auth()
-            if status == 200:
-                data = permission_status(username)
-                if bool(int(data['read_permission'])):
-                    try:
-                        response_code, message = GetImageList()
-                        bmessage = message.encode("utf-8")
-                    except Exception:
-                        response_code = 400
-                        bmessage = "数据格式错误".encode("utf-8")
-                    self.send_response(response_code)
-                    self.send_header('Content-type', 'text/html')
-                    self.end_headers()
-                    self.wfile.write(bmessage)
-                else:
-                    bmessage = "用户缺少权限".encode("utf-8")
-                    self.send_response(400)
-                    self.send_header('Content-type', 'text/html')
-                    self.end_headers()
-                    self.wfile.write(bmessage)
-            else:
-                bmessage = message.encode("utf-8")
-                self.send_response(status)
-                self.send_header('Content-type', 'text/html')
-                self.end_headers()
-                self.wfile.write(bmessage)
 
         # 查看所有用户权限
         elif path[0] == "/api/manage_permission_list":
@@ -382,8 +309,7 @@ class Application(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(bmessage)
 
-        # 上传图片
-        elif self.path == "/api/image_info":
+        elif self.path == "/api/file":
             username, status, message = self.auth()
             if status == 200:
                 data = permission_status(username)
@@ -395,12 +321,9 @@ class Application(BaseHTTPRequestHandler):
                             headers=self.headers,
                             environ={'REQUEST_METHOD': 'POST'}
                         )
-                        file_field = form['image']
-                        if file_field == "":
-                            response_code, message = UploadImage("", "", data)
-                        else:
-                            imagename, imagefile = get_image_information(file_field)
-                            response_code, message = UploadImage(imagefile, imagename, data)
+                        file_field = form['file']
+                        filename, file = get_file_information(file_field)
+                        response_code, message = upload_file(filename, file)
                         bmessage = message.encode("utf-8")
                     except Exception:
                         response_code = 400
@@ -428,21 +351,16 @@ class Application(BaseHTTPRequestHandler):
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['upload_permission'])):
-                    try:
-                        content_type, _ = cgi.parse_header(self.headers['content-type'])
-                        form = cgi.FieldStorage(
-                            fp=self.rfile,
-                            headers=self.headers,
-                            environ={'REQUEST_METHOD': 'POST'}
-                        )
-                        file_field = form['image']
-                        data = eval(form["text"].value)
-                        imagename, imagefile = get_image_information(file_field)
-                        response_code, message = upload_rich_text(imagename, imagefile, data)
-                        bmessage = message.encode("utf-8")
-                    except Exception:
-                        response_code = 400
-                        bmessage = "数据格式错误".encode("utf-8")
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length).decode("utf-8")
+                    data = json.loads(post_data)
+                    response_code, message = upload_rich_text(data)
+                    bmessage = message.encode("utf-8")
+                    # try:
+                    #
+                    # except Exception:
+                    #     response_code = 400
+                    #     bmessage = "数据格式错误".encode("utf-8")
                     self.send_response(response_code)
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()
@@ -473,9 +391,9 @@ class Application(BaseHTTPRequestHandler):
                             headers=self.headers,
                             environ={'REQUEST_METHOD': 'POST'}
                         )
-                        file_field = form['image']
+                        file_field = form['file']
                         data = eval(form["text"].value)
-                        _, imagefile = get_image_information(file_field)
+                        _, imagefile = get_file_information(file_field)
                         if file_field.value == "":
                             imagefile = [None]
                         response_code, message = upload_webinformation(imagefile, data)
@@ -512,9 +430,9 @@ class Application(BaseHTTPRequestHandler):
                             headers=self.headers,
                             environ={'REQUEST_METHOD': 'POST'}
                         )
-                        file_field = form['image']
+                        file_field = form['file']
                         data = eval(form["text"].value)
-                        imagename, imagefile = get_image_information(file_field)
+                        imagename, imagefile = get_file_information(file_field)
                         if len(imagename) > 1:
                             self.send_response(400)
                             self.send_header('Content-type', 'text/html')
@@ -553,29 +471,22 @@ class Application(BaseHTTPRequestHandler):
     # UPDATE请求
     def do_PUT(self):
 
+        # 富文本修改
         if self.path == "/api/rich_text":
             username, status, message = self.auth()
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['update_permission'])):
-                    try:
-                        content_type, _ = cgi.parse_header(self.headers['content-type'])
-                        form = cgi.FieldStorage(
-                            fp=self.rfile,
-                            headers=self.headers,
-                            environ={'REQUEST_METHOD': 'POST'}
-                        )
-                        file_field = form['image']
-                        data = eval(form["text"].value)
-                        imagename, imagefile = get_image_information(file_field)
-                        if file_field == "" or file_field == "null":
-                            response_code, message = update_rich_text("", "", data)
-                        else:
-                            response_code, message = update_rich_text(imagename, imagefile, data)
-                        bmessage = message.encode("utf-8")
-                    except Exception:
-                        response_code = 400
-                        bmessage = "数据格式错误".encode("utf-8")
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length).decode("utf-8")
+                    data = json.loads(post_data)
+                    response_code, message = update_rich_text(data)
+                    bmessage = message.encode("utf-8")
+                    # try:
+                    #
+                    # except Exception:
+                    #     response_code = 400
+                    #     bmessage = "数据格式错误".encode("utf-8")
                     self.send_response(response_code)
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()
@@ -593,6 +504,7 @@ class Application(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(bmessage)
 
+        # 广告修改
         elif self.path == "/api/ad_information":
             username, status, message = self.auth()
             if status == 200:
@@ -605,13 +517,13 @@ class Application(BaseHTTPRequestHandler):
                             headers=self.headers,
                             environ={'REQUEST_METHOD': 'POST'}
                         )
-                        file_field = form['image']
+                        file_field = form['file']
                         data = eval(form["text"].value)
                         if file_field.value == "" or file_field.value == "null":
                             response_code, message = update_ad_information("", "", data)
                             bmessage = message.encode("utf-8")
                         else:
-                            imagename, imagefile = get_image_information(file_field)
+                            imagename, imagefile = get_file_information(file_field)
                             if len(imagename) > 1:
                                 self.send_response(400)
                                 self.send_header('Content-type', 'text/html')
@@ -649,55 +561,11 @@ class Application(BaseHTTPRequestHandler):
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['update_permission'])):
-                    content_length = int(self.headers['Content-Length'])
-                    post_data = self.rfile.read(content_length).decode("utf-8")
-                    data = json.loads(post_data)
-                    key = list(data.keys())
-                    if key[0] == "text_id":
-                        response_code, message = delete_rich_text(data)
-                    elif key[0] == "url":
-                        response_code, message = delete_rich_text_image(data)
-                    else:
-                        response_code = 400
-                        message = bad_message("数据错误")
-                    bmessage = message.encode("utf-8")
-                    # try:
-                    #
-                    # except Exception:
-                    #     response_code = 400
-                    #     bmessage = "数据格式错误".encode("utf-8")
-                    self.send_response(response_code)
-                    self.send_header('Content-type', 'text/html')
-                    self.end_headers()
-                    self.wfile.write(bmessage)
-                else:
-                    bmessage = "用户缺少权限".encode("utf-8")
-                    self.send_response(400)
-                    self.send_header('Content-type', 'text/html')
-                    self.end_headers()
-                    self.wfile.write(bmessage)
-            else:
-                bmessage = message.encode("utf-8")
-                self.send_response(status)
-                self.send_header('Content-type', 'text/html')
-                self.end_headers()
-                self.wfile.write(bmessage)
-
-        # 删除图片
-        elif self.path == "/api/image_info":
-            username, status, message = self.auth()
-            if status == 200:
-                data = permission_status(username)
-                if bool(int(data['update_permission'])):
                     try:
-                        content_type, _ = cgi.parse_header(self.headers['content-type'])
-                        form = cgi.FieldStorage(
-                            fp=self.rfile,
-                            headers=self.headers,
-                            environ={'REQUEST_METHOD': 'POST'}
-                        )
-                        image_name = form['image'].value
-                        response_code, message = DeleteImage(image_name)
+                        content_length = int(self.headers['Content-Length'])
+                        post_data = self.rfile.read(content_length).decode("utf-8")
+                        data = json.loads(post_data)
+                        response_code, message = delete_rich_text(data)
                         bmessage = message.encode("utf-8")
                     except Exception:
                         response_code = 400
@@ -719,6 +587,7 @@ class Application(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(bmessage)
 
+        # 删除广告
         elif self.path == "/api/ad_information":
             username, status, message = self.auth()
             if status == 200:
@@ -732,6 +601,38 @@ class Application(BaseHTTPRequestHandler):
                     except Exception:
                         response_code = 400
                         bmessage = "数据格式错误".encode("utf-8")
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+            else:
+                bmessage = message.encode("utf-8")
+                self.send_response(status)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write(bmessage)
+
+        elif self.path == "/api/image":
+            username, status, message = self.auth()
+            if status == 200:
+                data = permission_status(username)
+                if bool(int(data['update_permission'])):
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length).decode("utf-8")
+                    data = json.loads(post_data)
+                    response_code, message = delete_file(data)
+                    bmessage = message.encode("utf-8")
+                    # try:
+                    #
+                    # except Exception:
+                    #     response_code = 400
+                    #     bmessage = "数据格式错误".encode("utf-8")
                     self.send_response(response_code)
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()

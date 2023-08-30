@@ -4,7 +4,7 @@ import uuid
 from pathlib import Path
 import socket
 from DBManager.DBConnect import connectdb
-from settings import ROOT_PATH, IMAGE_PATH
+from settings import ROOT_PATH, FILE_PATH
 from utils.ResponseBadMessage import bad_message
 from utils.ResponseGoodMessage import data_good_message, normal_good_message
 from utils.DictZip import dict_zip_multiple
@@ -38,7 +38,7 @@ def upload_ad(imagename, imagefile, data):
     generate_uuid = uuid.uuid4()
     name_list = [str(generate_uuid), file_type]
     imagefile_name = ".".join(name_list)
-    image_path = IMAGE_PATH + "/" + "ad_image/"
+    image_path = FILE_PATH + "/" + "ad_image/"
     real_path = root_path + image_path
     Path(real_path.replace("/", "\\")).mkdir(parents=True, exist_ok=True)
     image_data = (imagefile_name, image_path)

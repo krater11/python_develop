@@ -5,7 +5,7 @@ DATABASE = "test.db"
 
 ROOT_PATH = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
 
-IMAGE_PATH = "/media/photo"
+FILE_PATH = "/media/photo"
 
 HOST = "0.0.0.0"
 
@@ -23,3 +23,12 @@ RESPONSE_BAD_MESSAGE = {
     "error_code": 1,
     "msg": ""
 }
+
+MEDIA_LIST = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tif', 'tiff', 'mp3', 'wav', 'flac', 'acc', 'mpg', 'mpeg', 'mp4', 'avi', 'mov', 'wmv', 'swf']
+
+IMAGE_LIST = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tif', 'tiff']
+
+AUDIO_LIST = ['mp3', 'wav', 'flac', 'acc']
+
+VIDEO_LIST = ['mpg', 'mpeg', 'mp4', 'avi', 'mov', 'wmv', 'swf']
+
