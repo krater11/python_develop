@@ -33,7 +33,6 @@ def upload_rich_text(data):
     text_name = data["text_name"]
     text = data["text"]
     text_data = (text_name, text, richtext_type)
-    Path(real_path.replace("/", "\\")).mkdir(parents=True, exist_ok=True)
     c.execute(
         "INSERT INTO RichTextInfo (text_name, text, type) VALUES (?, ?, ?)",
         text_data)

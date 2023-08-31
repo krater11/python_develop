@@ -5,6 +5,7 @@ from pathlib import Path
 import socket
 from DBManager.DBConnect import connectdb
 from settings import ROOT_PATH, FILE_PATH
+from utils.GuessType import guess_type
 from utils.ResponseBadMessage import bad_message
 from utils.ResponseGoodMessage import data_good_message, normal_good_message
 from utils.DictZip import dict_zip_multiple
@@ -38,12 +39,12 @@ def upload_ad(imagename, imagefile, data):
     generate_uuid = uuid.uuid4()
     name_list = [str(generate_uuid), file_type]
     imagefile_name = ".".join(name_list)
-    image_path = FILE_PATH + "/" + "ad_image/"
-    real_path = root_path + image_path
+    file_path = guess_type(file_type) + "/ad_image/"
+    real_path = root_path + file_path
     Path(real_path.replace("/", "\\")).mkdir(parents=True, exist_ok=True)
-    image_data = (imagefile_name, image_path)
+    image_data = (imagefile_name, file_path)
     information_data = (title, content, imagefile_name, type)
-    with open(root_path+image_path+imagefile_name, 'wb') as f:
+    with open(root_path+file_path+imagefile_name, 'wb') as f:
         f.write(imagefile)
     c.execute("INSERT INTO Ad_image (image_name, image_path) VALUES (?, ?)", image_data)
     c.execute("INSERT INTO Ad_information (title, content, image_name, type) VALUES (?, ?, ?, ?)", information_data)

@@ -5,11 +5,11 @@ import uuid
 from pathlib import Path
 from DBManager.DBConnect import connectdb
 from settings import ROOT_PATH, FILE_PATH, PORT
+from utils.GuessType import guess_type
 from utils.ResponseBadMessage import bad_message
 from utils.ResponseGoodMessage import data_good_message, normal_good_message
 
 root_path = ROOT_PATH.replace("\\", "/")
-file_path = FILE_PATH + "/file_zip"
 
 
 def upload_file(imagename, imagefile):
@@ -22,23 +22,23 @@ def upload_file(imagename, imagefile):
         file_path VARCHAR)''')
     except Exception:
         return 400, bad_message("数据库连接失败")
-    real_path = root_path + file_path
-    Path(real_path.replace("/", "\\")).mkdir(parents=True, exist_ok=True)
     count = 0
     data = []
     ip = socket.gethostbyname(socket.gethostname())
     for i in imagename:
         file_type = i.split(".")[-1]
+        file_path = guess_type(file_type) + "/zip"
         generate_uuid = uuid.uuid4()
         name_list = [str(generate_uuid), file_type]
-        imagefile_name = ".".join(name_list)
-
-        with open(real_path + "/" + imagefile_name, 'wb') as f:
+        file_name = ".".join(name_list)
+        real_path = root_path + file_path
+        Path(real_path.replace("/", "\\")).mkdir(parents=True, exist_ok=True)
+        with open(real_path + "/" + file_name, 'wb') as f:
             f.write(imagefile[count])
-        image_data = (imagefile_name, file_path)
-        c.execute("INSERT INTO Image_zip (image_name, image_path) VALUES (?, ?)", image_data)
+        file_data = (file_name, file_path)
+        c.execute("INSERT INTO File_zip (file_name, file_path) VALUES (?, ?)", file_data)
         count += 1
-        url = f"http://{ip}:{PORT}{file_path}/{imagefile_name}"
+        url = f"http://{ip}:{PORT}{file_path}/{file_name}"
         data.append(url)
     conn.commit()
     conn.close()
