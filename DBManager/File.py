@@ -51,11 +51,11 @@ def delete_file(data):
     except Exception:
         return 400, bad_message("数据库连接失败")
 
-    url = data["url"]
-    url_list = url.split(",")
+    print(data)
+    url_list = data.split(",")
     for i in url_list:
         detail_list = i.split("/")
-        if detail_list[-2] != "image_zip":
+        if detail_list[-2] != "zip":
             return 400, bad_message("url错误")
         file_name = detail_list[-1]
         file_path = c.execute("SELECT file_path FROM File_zip WHERE file_name='%s'" % file_name).fetchone()[0]

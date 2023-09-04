@@ -15,7 +15,7 @@ RESPONSE_GOOD_MESSAGE = {
     "status": True,
     "error_code": 0,
     "msg": "",
-    "data": ""
+    "data": {}
 }
 
 RESPONSE_BAD_MESSAGE = {

@@ -26,3 +26,15 @@ def data_good_message(response_message, data_name, data):
     json_message = json.dumps(message)
 
     return json_message
+
+
+def listdata_good_message(response_message, data_name, data):
+    count = 0
+    message = RESPONSE_GOOD_MESSAGE
+    message["msg"] = response_message
+    for i in data_name:
+        message["data"][data_name[count]] = data[count]
+        count += 1
+    json_message = json.dumps(message)
+
+    return json_message
