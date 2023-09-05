@@ -44,7 +44,7 @@ def get_ad_number(rich_text_type):
     except Exception:
         return 400, bad_message("数据库连接失败")
 
-    text = c.execute("SELECT title, image, introduction, create_time FROM AdManage WHERE type = '%s'" % rich_text_type).fetchall()
+    text = c.execute("SELECT text_id, title, image, introduction, create_time FROM AdManage WHERE type = '%s'" % rich_text_type).fetchall()
     column_names = [description[0] for description in c.description]
     data = dict_zip_multiple(text, column_names)
     data_name_list = ["text_number", "text"]
@@ -90,7 +90,7 @@ def update_ad_text(data):
         conn, c = connectdb()
     except Exception:
         return 400, bad_message("数据库连接失败")
-    print(data)
+
     text_id = data["text_id"]
     key = []
     value = []
