@@ -8,6 +8,7 @@ import tempfile
 from DBManager.AdManage import upload_ad_text, get_ad_text, update_ad_text, delete_ad_text, get_ad_number
 from DBManager.Advertisement import upload_ad, get_ad_information, delete_ad_information, update_ad_information
 from DBManager.File import upload_file, delete_file
+from DBManager.NoteInfo import upload_note, get_note, get_note_detail, update_note, delete_note
 from DBManager.Product import upload_product, get_product, update_product, delete_product
 from DBManager.ProductClass import upload_product_top_class, upload_product_middle_class, get_product_class, \
     update_product_class, delete_product_class
@@ -272,10 +273,43 @@ class Application(BaseHTTPRequestHandler):
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['read_permission'])):
+                    url = f"http://{self.headers['Host']}{self.path}"
+                    product_class = get_url_data(url)['product_class'][0]
+                    response_code, message = get_product_class(product_class)
+                    bmessage = message.encode("utf-8")
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+                    # try:
+                    #
+                    # except Exception:
+                    #     self.send_response(400)
+                    #     self.send_header('Content-type', 'text/html')
+                    #     self.end_headers()
+                    #     self.wfile.write("数据格式错误".encode("utf-8"))
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+            else:
+                bmessage = message.encode("utf-8")
+                self.send_response(status)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write(bmessage)
+
+        elif path[0] == "/api/product":
+            username, status, message = self.auth()
+            if status == 200:
+                data = permission_status(username)
+                if bool(int(data['read_permission'])):
                     try:
                         url = f"http://{self.headers['Host']}{self.path}"
                         product_class = get_url_data(url)['product_class'][0]
-                        response_code, message = get_product_class(product_class)
+                        response_code, message = get_product(product_class)
                         bmessage = message.encode("utf-8")
                         self.send_response(response_code)
                         self.send_header('Content-type', 'text/html')
@@ -299,15 +333,45 @@ class Application(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(bmessage)
 
-        elif path[0] == "/api/product":
+        elif path[0] == "/api/note":
+            username, status, message = self.auth()
+            if status == 200:
+                data = permission_status(username)
+                if bool(int(data['read_permission'])):
+                    try:
+                        response_code, message = get_note()
+                        bmessage = message.encode("utf-8")
+                        self.send_response(response_code)
+                        self.send_header('Content-type', 'text/html')
+                        self.end_headers()
+                        self.wfile.write(bmessage)
+                    except Exception:
+                        self.send_response(400)
+                        self.send_header('Content-type', 'text/html')
+                        self.end_headers()
+                        self.wfile.write("数据格式错误".encode("utf-8"))
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+            else:
+                bmessage = message.encode("utf-8")
+                self.send_response(status)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write(bmessage)
+
+        elif path[0] == "/api/note_detail":
             username, status, message = self.auth()
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['read_permission'])):
                     try:
                         url = f"http://{self.headers['Host']}{self.path}"
-                        product_class = get_url_data(url)['product_class'][0]
-                        response_code, message = get_product(product_class)
+                        note_id = get_url_data(url)['note_id'][0]
+                        response_code, message = get_note_detail(note_id)
                         bmessage = message.encode("utf-8")
                         self.send_response(response_code)
                         self.send_header('Content-type', 'text/html')
@@ -667,10 +731,42 @@ class Application(BaseHTTPRequestHandler):
                     content_length = int(self.headers['Content-Length'])
                     post_data = self.rfile.read(content_length).decode("utf-8")
                     data = json.loads(post_data)
-                    if data["product_class_superset"] == "None":
+                    if data['product_class_superset'] == "None":
                         response_code, message = upload_product_top_class(data)
                     else:
                         response_code, message = upload_product_middle_class(data)
+                    bmessage = message.encode("utf-8")
+                    # try:
+                    #
+                    # except Exception:
+                    #     response_code = 400
+                    #     bmessage = "数据格式错误".encode("utf-8")
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+            else:
+                bmessage = message.encode("utf-8")
+                self.send_response(status)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write(bmessage)
+
+        elif self.path == "/api/note":
+            username, status, message = self.auth()
+            if status == 200:
+                data = permission_status(username)
+                if bool(int(data['upload_permission'])):
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length).decode("utf-8")
+                    data = json.loads(post_data)
+                    response_code, message = upload_note(data)
                     bmessage = message.encode("utf-8")
                     # try:
                     #
@@ -874,6 +970,38 @@ class Application(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(bmessage)
 
+        elif self.path == "/api/note":
+            username, status, message = self.auth()
+            if status == 200:
+                data = permission_status(username)
+                if bool(int(data['update_permission'])):
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length).decode("utf-8")
+                    data = json.loads(post_data)
+                    response_code, message = update_note(data)
+                    bmessage = message.encode("utf-8")
+                    # try:
+                    #
+                    # except Exception:
+                    #     response_code = 400
+                    #     bmessage = "数据格式错误".encode("utf-8")
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+            else:
+                bmessage = message.encode("utf-8")
+                self.send_response(status)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write(bmessage)
+
         # 无响应页
         else:
             self.send_response(404)
@@ -1050,6 +1178,38 @@ class Application(BaseHTTPRequestHandler):
                     post_data = self.rfile.read(content_length).decode("utf-8")
                     data = json.loads(post_data)
                     response_code, message = delete_product(data)
+                    bmessage = message.encode("utf-8")
+                    # try:
+                    #
+                    # except Exception:
+                    #     response_code = 400
+                    #     bmessage = "数据格式错误".encode("utf-8")
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+            else:
+                bmessage = message.encode("utf-8")
+                self.send_response(status)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write(bmessage)
+
+        elif self.path == "/api/note":
+            username, status, message = self.auth()
+            if status == 200:
+                data = permission_status(username)
+                if bool(int(data['update_permission'])):
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length).decode("utf-8")
+                    data = json.loads(post_data)
+                    response_code, message = delete_note(data)
                     bmessage = message.encode("utf-8")
                     # try:
                     #

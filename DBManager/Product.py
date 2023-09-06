@@ -13,11 +13,11 @@ def upload_product(data):
 
     product_name = data["product_name"]
     product_introduction = data["product_introduction"]
-    product_class = data["product_class"]
+    product_class_superset = data["product_class_superset"]
 
-    c.execute(f"CREATE TABLE IF NOT EXISTS {product_class} (product_id INTEGER PRIMARY KEY AUTOINCREMENT,name VARCHAR,product_introduction VARCHAR,product_class_superset VARCHAR, type VARCHAR)")
+    c.execute(f"CREATE TABLE IF NOT EXISTS {product_class_superset} (product_id INTEGER PRIMARY KEY AUTOINCREMENT,name VARCHAR,product_introduction VARCHAR,product_class_superset VARCHAR, type VARCHAR)")
     conn.commit()
-    c.execute(f"INSERT INTO {product_class} (name, product_introduction, product_class_superset, type) VALUES ('{product_name}', '{product_introduction}', '{product_class}', 'product')")
+    c.execute(f"INSERT INTO {product_class_superset} (name, product_introduction, product_class_superset, type) VALUES ('{product_name}', '{product_introduction}', '{product_class_superset}', 'product')")
     conn.commit()
     conn.close()
 
