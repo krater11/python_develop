@@ -146,63 +146,35 @@ def delete_product_class(data):
     except Exception:
         return 400, bad_message("数据库连接失败")
 
-    superset = data["superset"]
-    product_class_id = data["product_class_id"]
-
-    if superset == "None":
-        item = c.execute(f"SELECT name FROM ProductTopClassInfo WHERE product_class_id={product_class_id}").fetchone()
-        delete_list = []
-        get_list = []
-        delete_list.append(item[0])
-
-        get_list.append(item[0])
-        count = 0
-        while count < 10:
-            get_list1 = []
-            for i in get_list:
-                Bool, list = get_subset(i)
-                if Bool:
-                    continue
-                else:
-                    for j in list:
-                        if j not in delete_list:
-                            delete_list.append(j)
-                            get_list1.append(j)
-
-            get_list = get_list1
-            count += 1
-
-        c.execute(f"DELETE FROM ProductTopClassInfo WHERE product_class_id={product_class_id}")
-        for i in delete_list:
-            c.execute(f"DROP TABLE IF EXISTS {i}")
-        conn.commit()
-        conn.close()
-        return 200, normal_good_message("删除成功")
-
-    subset_item = c.execute(f"SELECT name FROM {superset} WHERE product_class_id={product_class_id}").fetchone()
-
-    c.execute(f"DELETE FROM {superset} WHERE product_class_id = {product_class_id}")
-    delete_list = []
-    get_list = []
-    delete_list.append(subset_item[0])
-    get_list.append(subset_item[0])
+    pid_item = c.execute("SELECT pid FROM ProductClass").fetchall()
+    pid_list = []
+    for i in pid_item:
+        if i[0] not in pid_list:
+            pid_list.append(i[0])
+    class_id = data["id"]
+    delete_list = [class_id]
+    get_list = delete_list
+    tree_list = []
+    tree_list.append(delete_list)
     count = 0
-    while count < 10:
-        get_list1 = []
+    while count < len(tree_list[-1]):
+        tem_list = []
         for i in get_list:
-            Bool, list = get_subset(i)
-            if Bool:
-                continue
+            s_list = get_subset_class(i)
+            if s_list not in tree_list and len(s_list) != 0:
+                tree_list.append(s_list)
+            for j in s_list:
+                delete_list.append(j)
+                tem_list.append(j)
+        get_list = tem_list
+        for i in tree_list[-1]:
+            if i not in pid_list:
+                count += 1
             else:
-                for j in list:
-                    if j not in delete_list:
-                        delete_list.append(j)
-                        get_list1.append(j)
-
-        get_list = get_list1
-        count += 1
+                count = 0
     for i in delete_list:
-        c.execute(f"DROP TABLE IF EXISTS {i}")
+        c.execute(f"DELETE FROM ProductClass WHERE id={i}")
     conn.commit()
     conn.close()
+
     return 200, normal_good_message("删除成功")

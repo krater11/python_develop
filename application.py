@@ -306,20 +306,21 @@ class Application(BaseHTTPRequestHandler):
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['read_permission'])):
-                    try:
-                        url = f"http://{self.headers['Host']}{self.path}"
-                        product_class = get_url_data(url)['product_class'][0]
-                        response_code, message = get_product(product_class)
-                        bmessage = message.encode("utf-8")
-                        self.send_response(response_code)
-                        self.send_header('Content-type', 'text/html')
-                        self.end_headers()
-                        self.wfile.write(bmessage)
-                    except Exception:
-                        self.send_response(400)
-                        self.send_header('Content-type', 'text/html')
-                        self.end_headers()
-                        self.wfile.write("数据格式错误".encode("utf-8"))
+                    url = f"http://{self.headers['Host']}{self.path}"
+                    product_class = get_url_data(url)['product_class_id'][0]
+                    response_code, message = get_product(product_class)
+                    bmessage = message.encode("utf-8")
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+                    # try:
+                    #
+                    # except Exception:
+                    #     self.send_response(400)
+                    #     self.send_header('Content-type', 'text/html')
+                    #     self.end_headers()
+                    #     self.wfile.write("数据格式错误".encode("utf-8"))
                 else:
                     bmessage = "用户缺少权限".encode("utf-8")
                     self.send_response(400)
@@ -1144,7 +1145,6 @@ class Application(BaseHTTPRequestHandler):
                 if bool(int(data['update_permission'])):
                     content_length = int(self.headers['Content-Length'])
                     post_data = self.rfile.read(content_length).decode("utf-8")
-                    print(post_data)
                     data = json.loads(post_data)
                     response_code, message = delete_product_class(data)
                     bmessage = message.encode("utf-8")
