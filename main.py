@@ -8,7 +8,7 @@ import os
 def run_server():
     server_address = (HOST, PORT)
     httpd = ThreadingHTTPServer(server_address, Application)
-    print("Serving on http://" + HOST + ":" + str(PORT))
+    print("Serving on http://" + HOST + ":" + str(PORT)+"/")
     httpd.serve_forever()
 
 

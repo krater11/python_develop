@@ -274,7 +274,7 @@ class Application(BaseHTTPRequestHandler):
                 data = permission_status(username)
                 if bool(int(data['read_permission'])):
                     url = f"http://{self.headers['Host']}{self.path}"
-                    product_class = get_url_data(url)['product_class'][0]
+                    product_class = get_url_data(url)['pid'][0]
                     response_code, message = get_product_class(product_class)
                     bmessage = message.encode("utf-8")
                     self.send_response(response_code)
@@ -731,7 +731,7 @@ class Application(BaseHTTPRequestHandler):
                     content_length = int(self.headers['Content-Length'])
                     post_data = self.rfile.read(content_length).decode("utf-8")
                     data = json.loads(post_data)
-                    if data['product_class_superset'] == "None":
+                    if data['pid'] == 0:
                         response_code, message = upload_product_top_class(data)
                     else:
                         response_code, message = upload_product_middle_class(data)
@@ -1144,6 +1144,7 @@ class Application(BaseHTTPRequestHandler):
                 if bool(int(data['update_permission'])):
                     content_length = int(self.headers['Content-Length'])
                     post_data = self.rfile.read(content_length).decode("utf-8")
+                    print(post_data)
                     data = json.loads(post_data)
                     response_code, message = delete_product_class(data)
                     bmessage = message.encode("utf-8")

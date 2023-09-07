@@ -7,7 +7,7 @@ ROOT_PATH = os.path.normpath(os.path.dirname(os.path.abspath(__file__)))
 
 FILE_PATH = "/media/photo"
 
-HOST = "0.0.0.0"
+HOST = "192.168.3.30"
 
 PORT = 8000
 
