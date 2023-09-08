@@ -174,6 +174,7 @@ def delete_product_class(data):
                 count = 0
     for i in delete_list:
         c.execute(f"DELETE FROM ProductClass WHERE id={i}")
+        c.execute(f"DELETE FROM Product WHERE class_id={i}")
     conn.commit()
     conn.close()
 
