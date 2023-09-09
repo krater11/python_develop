@@ -89,14 +89,14 @@ def update_product_class(data):
         conn, c = connectdb()
     except Exception:
         return 400, bad_message("数据库连接失败")
-
+    print(data)
     class_id = data["id"]
     name = data["name"]
     new_pid = data["pid"]
     old_pid = c.execute(f"SELECT pid FROM ProductClass WHERE id={class_id}").fetchone()[0]
 
     if new_pid == old_pid:
-        c.execute(f"UPDATE ProductClass SET name={name} WHERE id={class_id}")
+        c.execute(f"UPDATE ProductClass SET name='{name}' WHERE id={class_id}")
         conn.commit()
         conn.close()
         return 200, normal_good_message("修改成功")

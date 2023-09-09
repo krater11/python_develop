@@ -13,7 +13,8 @@ def upload_product(data):
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         class_id INTEGER,
         name VARCHAR,
-        product_introduction VARCHAR
+        product_introduction VARCHAR,
+        image VARCHAR
         )
         ''')
     except Exception:
@@ -22,8 +23,9 @@ def upload_product(data):
     class_id = data["class_id"]
     name = data["name"]
     introduction = data["product_introduction"]
-    post_data = (class_id, name, introduction)
-    c.execute("INSERT INTO Product (class_id, name, product_introduction) VALUES (?, ?, ?)", post_data)
+    image = data["image"]
+    post_data = (class_id, name, introduction, image)
+    c.execute("INSERT INTO Product (class_id, name, product_introduction, image) VALUES (?, ?, ?, ?)", post_data)
     conn.commit()
     conn.close()
     return 200, normal_good_message("保存成功")
