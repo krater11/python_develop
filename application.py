@@ -9,7 +9,7 @@ from DBManager.AdManage import upload_ad_text, get_ad_text, update_ad_text, dele
 from DBManager.Advertisement import upload_ad, get_ad_information, delete_ad_information, update_ad_information
 from DBManager.File import upload_file, delete_file
 from DBManager.NoteInfo import upload_note, get_note, get_note_detail, update_note, delete_note
-from DBManager.Product import upload_product, get_product, update_product, delete_product
+from DBManager.Product import upload_product, get_product, update_product, delete_product, get_product_detail
 from DBManager.ProductClass import upload_product_top_class, upload_product_middle_class, get_product_class, \
     update_product_class, delete_product_class
 from settings import ROOT_PATH
@@ -309,6 +309,39 @@ class Application(BaseHTTPRequestHandler):
                     url = f"http://{self.headers['Host']}{self.path}"
                     product_class = get_url_data(url)['product_class_id'][0]
                     response_code, message = get_product(product_class)
+                    bmessage = message.encode("utf-8")
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+                    # try:
+                    #
+                    # except Exception:
+                    #     self.send_response(400)
+                    #     self.send_header('Content-type', 'text/html')
+                    #     self.end_headers()
+                    #     self.wfile.write("数据格式错误".encode("utf-8"))
+                else:
+                    bmessage = "用户缺少权限".encode("utf-8")
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+            else:
+                bmessage = message.encode("utf-8")
+                self.send_response(status)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                self.wfile.write(bmessage)
+
+        elif path[0] == "/api/product_detail":
+            username, status, message = self.auth()
+            if status == 200:
+                data = permission_status(username)
+                if bool(int(data['read_permission'])):
+                    url = f"http://{self.headers['Host']}{self.path}"
+                    product_id = get_url_data(url)['product_id'][0]
+                    response_code, message = get_product_detail(product_id)
                     bmessage = message.encode("utf-8")
                     self.send_response(response_code)
                     self.send_header('Content-type', 'text/html')

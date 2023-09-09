@@ -12,18 +12,22 @@ def upload_product(data):
         CREATE TABLE IF NOT EXISTS Product (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         class_id INTEGER,
+        product_class VARCHAR,
         name VARCHAR,
-        product_introduction VARCHAR
+        product_introduction VARCHAR,
+        image VARCHAR
         )
         ''')
     except Exception:
         return 400, bad_message("数据库连接失败")
 
     class_id = data["class_id"]
+    product_class = data["product_class"]
     name = data["name"]
     introduction = data["product_introduction"]
-    post_data = (class_id, name, introduction)
-    c.execute("INSERT INTO Product (class_id, name, product_introduction) VALUES (?, ?, ?)", post_data)
+    image = data["image"]
+    post_data = (class_id, product_class, name, introduction, image)
+    c.execute("INSERT INTO Product (class_id, product_class, name, product_introduction, image) VALUES (?, ?, ?, ?, ?)", post_data)
     conn.commit()
     conn.close()
     return 200, normal_good_message("保存成功")
@@ -35,11 +39,24 @@ def get_product(product_class_id):
     except Exception:
         return 400, bad_message("数据库连接失败")
 
-    product_item = c.execute(f"SELECT * FROM Product WHERE class_id={product_class_id}").fetchall()
+    product_item = c.execute(f"SELECT id, name FROM Product WHERE class_id={product_class_id}").fetchall()
     column_names = [description[0] for description in c.description]
     product_list = dict_zip_multiple(product_item, column_names)
 
     return 200, data_good_message("数据获取成功", "product_information", product_list)
+
+
+def get_product_detail(product_id):
+    try:
+        conn, c = connectdb()
+    except Exception:
+        return 400, bad_message("数据库连接失败")
+
+    product_item = c.execute(f"SELECT * FROM Product WHERE id={product_id}").fetchall()
+    column_names = [description[0] for description in c.description]
+    product_list = dict_zip_multiple(product_item, column_names)
+
+    return 200, data_good_message("数据获取成功", "product_detail_information", product_list)
 
 
 def update_product(data):
