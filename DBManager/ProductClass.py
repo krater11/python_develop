@@ -1,4 +1,6 @@
 import sqlite3
+import uuid
+
 from DBManager.DBConnect import connectdb
 from DBManager.FindSubset import find_subset
 from DBManager.GetSubset import get_subset
@@ -17,8 +19,27 @@ def get_subset_class(id):
     id_list = []
     for i in id_item:
         id_list.append(i[0])
-
     return id_list
+
+
+def get_subset(pid):
+    try:
+        conn, c = connectdb()
+    except Exception:
+        return 400, bad_message("数据库连接失败")
+
+    item = c.execute(f"SELECT id, name, uuid FROM ProductClass WHERE pid={pid}").fetchall()
+    column_names = [description[0] for description in c.description]
+    class_dict = dict_zip_multiple(item, column_names)
+
+    for i in class_dict:
+        if "subset" not in i:
+            i["subset"] = [get_subset(i["id"])]
+        else:
+            i["subset"] = i["subset"].append(get_subset(i["id"]))
+        i.pop("id")
+
+    return class_dict
 
 
 def upload_product_top_class(data):
@@ -29,6 +50,7 @@ def upload_product_top_class(data):
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name VARCHAR,
         pid INTEGER,
+        uuid VARCHAR,
         rank VARCHAR
         )
         ''')
@@ -38,8 +60,9 @@ def upload_product_top_class(data):
     name = data["name"]
     pid = 0
     rank = "/"
-    class_data = (name, pid, rank)
-    c.execute("INSERT INTO ProductClass (name, pid, rank) VALUES (?, ?, ?)", class_data)
+    uuid_str = str(uuid.uuid4())
+    class_data = (name, pid, uuid_str, rank)
+    c.execute("INSERT INTO ProductClass (name, pid, uuid, rank) VALUES (?, ?, ?, ?)", class_data)
 
     conn.commit()
     conn.close()
@@ -55,33 +78,24 @@ def upload_product_middle_class(data):
 
     name = data["name"]
     pid = data["pid"]
+    uuid_str = str(uuid.uuid4())
 
     p_rank = c.execute(f"SELECT rank FROM ProductClass WHERE id={pid}").fetchone()[0]
 
     rank = p_rank + str(pid) + "/"
-    class_data = (name, pid, rank)
-    c.execute("INSERT INTO ProductClass (name, pid, rank) VALUES (?, ?, ?)",class_data)
+    class_data = (name, pid, uuid_str, str(rank))
+    c.execute("INSERT INTO ProductClass (name, pid, uuid, rank) VALUES (?, ?, ?, ?)", class_data)
     conn.commit()
     conn.close()
 
     return 200, normal_good_message("保存成功")
 
 
-def get_product_class(pid):
-    try:
-        conn, c = connectdb()
-    except Exception:
-        return 400, bad_message("数据库连接失败")
+def get_product_class(pid=0):
 
-    if pid == 0:
-        item = c.execute("SELECT * FROM ProductClass WHERE pid = 0").fetchall()
-        column_names = [description[0] for description in c.description]
-        zip_dict = dict_zip_multiple(item, column_names)
-    else:
-        item = c.execute(f"SELECT * FROM ProductClass WHERE pid = {pid}").fetchall()
-        column_names = [description[0] for description in c.description]
-        zip_dict = dict_zip_multiple(item, column_names)
-    return 200, data_good_message("获取成功", "class_information", zip_dict)
+    item = get_subset(pid)
+
+    return 200, data_good_message("获取成功", "class_information", item)
 
 
 def update_product_class(data):
@@ -89,10 +103,11 @@ def update_product_class(data):
         conn, c = connectdb()
     except Exception:
         return 400, bad_message("数据库连接失败")
-    print(data)
-    class_id = data["id"]
+
+    class_uuid = data["uuid"]
     name = data["name"]
     new_pid = data["pid"]
+    class_id = c.execute(f"SELECT id FROM ProductClass WHERE uuid='{class_uuid}'").fetchone()[0]
     old_pid = c.execute(f"SELECT pid FROM ProductClass WHERE id={class_id}").fetchone()[0]
 
     if new_pid == old_pid:
@@ -151,7 +166,8 @@ def delete_product_class(data):
     for i in pid_item:
         if i[0] not in pid_list:
             pid_list.append(i[0])
-    class_id = data["id"]
+    class_uuid = data["uuid"]
+    class_id = c.execute(f"SELECT id FROM ProductClass WHERE uuid='{class_uuid}'").fetchone()[0]
     delete_list = [class_id]
     get_list = delete_list
     tree_list = []
@@ -172,9 +188,11 @@ def delete_product_class(data):
                 count += 1
             else:
                 count = 0
+
     for i in delete_list:
-        c.execute(f"DELETE FROM ProductClass WHERE id={i}")
-        c.execute(f"DELETE FROM Product WHERE class_id={i}")
+        uuid = c.execute(f"SELECT uuid FROM ProductClass WHERE id={i}").fetchone()[0]
+        c.execute(f"DELETE FROM ProductClass WHERE uuid='{uuid}'")
+        c.execute(f"DELETE FROM Product WHERE class_uuid='{uuid}'")
     conn.commit()
     conn.close()
 
