@@ -23,6 +23,7 @@ def ManageRegist(data):
         user_phone INTEGER (11),
         user_createtime DATETIME,
         user_token VARCHAR (255),
+        token_expire_time VARCHAR,
         superuser INTEGER)''')
     except Exception:
         return 400, bad_message("数据库连接失败")

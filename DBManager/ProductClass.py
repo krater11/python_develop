@@ -28,17 +28,15 @@ def get_subset(pid):
     except Exception:
         return 400, bad_message("数据库连接失败")
 
-    item = c.execute(f"SELECT id, name, uuid FROM ProductClass WHERE pid={pid}").fetchall()
+    item = c.execute(f"SELECT id, name, uuid, pid FROM ProductClass WHERE pid={pid}").fetchall()
     column_names = [description[0] for description in c.description]
     class_dict = dict_zip_multiple(item, column_names)
-
     for i in class_dict:
-        if "subset" not in i:
-            i["subset"] = [get_subset(i["id"])]
+        if "children" not in i:
+            i["children"] = get_subset(i["id"])
         else:
-            i["subset"] = i["subset"].append(get_subset(i["id"]))
+            i["children"] = i["children"].append(get_subset(i["id"]))
         i.pop("id")
-
     return class_dict
 
 
@@ -77,9 +75,10 @@ def upload_product_middle_class(data):
         return 400, bad_message("数据库连接失败")
 
     name = data["name"]
-    pid = data["pid"]
+    parent_uuid = data["uuid"]
     uuid_str = str(uuid.uuid4())
 
+    pid = c.execute(f"SELECT id FROM ProductClass WHERE uuid='{parent_uuid}'").fetchone()[0]
     p_rank = c.execute(f"SELECT rank FROM ProductClass WHERE id={pid}").fetchone()[0]
 
     rank = p_rank + str(pid) + "/"

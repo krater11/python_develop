@@ -38,24 +38,11 @@ def get_note():
     except Exception:
         return 400, bad_message("数据库连接失败")
 
-    note_item = c.execute("SELECT note_id,name FROM NoteInfo").fetchall()
+    note_item = c.execute("SELECT * FROM NoteInfo").fetchall()
     column_names = [description[0] for description in c.description]
     dict_zip = dict_zip_multiple(note_item, column_names)
 
     return 200, data_good_message("获取成功", "note_information", dict_zip)
-
-
-def get_note_detail(note_id):
-    try:
-        conn, c = connectdb()
-    except Exception:
-        return 400, bad_message("数据库连接失败")
-
-    note_item = c.execute(f"SELECT * FROM NoteInfo WHERE note_id={note_id}").fetchone()
-    column_names = [description[0] for description in c.description]
-    zip_dict = dict_zip(note_item, column_names)
-
-    return 200, data_good_message("获取成功", "detail_information", zip_dict)
 
 
 def update_note(data):
