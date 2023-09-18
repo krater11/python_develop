@@ -9,6 +9,7 @@ import json
 import socket
 from utils.ResponseGoodMessage import normal_good_message, data_good_message
 from utils.ResponseBadMessage import bad_message
+from utils.encode_decode import encode_to_base64, decode_from_base64, is_base64
 
 root_path = ROOT_PATH.replace("\\", "/")
 image_path = FILE_PATH + "/" + "rich_text_image/"
@@ -50,6 +51,17 @@ def get_rich_text(rich_text_type):
     textitem = c.execute("SELECT * FROM RichTextInfo WHERE type = '%s'" % rich_text_type).fetchall()
     column_names = [description[0] for description in c.description]
     data = dict_zip_multiple(textitem, column_names)
+    for i in data:
+        for k,v in i.items():
+            if k == "text_id":
+                continue
+            else:
+                if v.isdigit():
+                    print("ok")
+                    continue
+                # elif is_base64(v):
+                #     v = decode_from_base64(v)
+                #     i[k] = v
     json_data = json.dumps(data)
     return 200, data_good_message("获取成功", "rich_text_information", json_data)
 
@@ -59,6 +71,7 @@ def update_rich_text(data):
         conn, c = connectdb()
     except Exception:
         return 400, bad_message("数据库连接失败")
+
     text_id = data["text_id"]
     key = []
     value = []
@@ -66,12 +79,13 @@ def update_rich_text(data):
         if k != "text_id":
             key.append(k)
             value.append(v)
+
     update_query = "UPDATE RichTextInfo SET "
     count = 0
     for i in range(len(key) - 1):
-        update_query += f"{key[count]} = '{value[count]}', "
+        update_query += f"{key[count]} = \'{encode_to_base64(str(value[count]))}\', "
         count += 1
-    update_query += f"{key[count]} = '{value[count]}' WHERE text_id ={text_id}"
+    update_query += f"{key[count]} = \'{value[count]}\' WHERE text_id ={text_id}"
     c.execute(update_query)
     conn.commit()
     conn.close()

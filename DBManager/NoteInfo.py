@@ -1,9 +1,10 @@
 import sqlite3
-
+from datetime import datetime
 from DBManager.DBConnect import connectdb
 from utils.DictZip import dict_zip_multiple,dict_zip
 from utils.ResponseBadMessage import bad_message
 from utils.ResponseGoodMessage import normal_good_message, data_good_message
+from utils.encode_decode import is_base64, decode_from_base64
 
 
 def upload_note(data):
@@ -15,7 +16,9 @@ def upload_note(data):
          name VARCHAR,
          phone VARCHAR,
          email VARCHAR,
-         note VARCHAR
+         note VARCHAR,
+         create_time VARCHAR,
+         title VARCHAR
          )
          ''')
     except Exception:
@@ -25,8 +28,10 @@ def upload_note(data):
     phone = data["phone"]
     email = data["email"]
     note = data["note"]
-    tuple_data = (name,phone,email,note)
-    c.execute("INSERT INTO NoteInfo (name, phone, email, note) VALUES (?,?,?,?)", tuple_data)
+    create_time = str(datetime.now())
+    title = data["title"]
+    tuple_data = (name, phone, email, note, create_time, title)
+    c.execute("INSERT INTO NoteInfo (name, phone, email, note, create_time, title) VALUES (?,?,?,?,?,?)", tuple_data)
     conn.commit()
     conn.close()
     return 200, normal_good_message("ok")
@@ -41,7 +46,17 @@ def get_note():
     note_item = c.execute("SELECT * FROM NoteInfo").fetchall()
     column_names = [description[0] for description in c.description]
     dict_zip = dict_zip_multiple(note_item, column_names)
-
+    for i in dict_zip:
+        for k,v in i.items():
+            if k == "note_id":
+                continue
+            else:
+                if v.isdigit():
+                    continue
+                else:
+                    if is_base64(v):
+                        v = decode_from_base64(v)
+                        i[k] = v
     return 200, data_good_message("获取成功", "note_information", dict_zip)
 
 
@@ -57,7 +72,6 @@ def update_note(data):
     for k, v in data.items():
         if k == "note_id":
             continue
-
         key.append(k)
         value.append(v)
 

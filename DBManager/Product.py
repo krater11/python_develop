@@ -5,6 +5,7 @@ from DBManager.DBConnect import connectdb
 from utils.ResponseBadMessage import bad_message
 from utils.ResponseGoodMessage import normal_good_message, data_good_message
 from utils.DictZip import dict_zip_multiple, dict_zip
+from utils.encode_decode import encode_to_base64
 
 
 def upload_product(data):
@@ -19,23 +20,24 @@ def upload_product(data):
         product_introduction VARCHAR,
         image VARCHAR,
         uuid VARCHAR,
-        text VARCHAR
+        text VARCHAR,
+        recommend VARCHAR
         )
         ''')
     except Exception:
         return 400, bad_message("数据库连接失败")
 
-    print(data)
     class_uuid = data["class_uuid"]
     product_class = data["product_class"]
     name = data["name"]
     introduction = data["product_introduction"]
     text = data["text"]
     image = data["image"]
+    recommend = data["recommend"]
     uuid_str = str(uuid.uuid4())
 
-    post_data = (class_uuid, product_class, name, introduction, image, uuid_str, text)
-    c.execute("INSERT INTO Product (class_uuid, product_class, name, product_introduction, image, uuid, text) VALUES (?, ?, ?, ?, ?, ?, ?)", post_data)
+    post_data = (class_uuid, product_class, name, introduction, image, uuid_str, text, recommend)
+    c.execute("INSERT INTO Product (class_uuid, product_class, name, product_introduction, image, uuid, text, recommend) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", post_data)
     conn.commit()
     conn.close()
     return 200, normal_good_message("保存成功")
@@ -47,9 +49,10 @@ def get_product():
     except Exception:
         return 400, bad_message("数据库连接失败")
 
-    product_item = c.execute(f"SELECT uuid, name, product_class FROM Product").fetchall()
+    product_item = c.execute(f"SELECT uuid, name, product_class, recommend, image, product_introduction FROM Product").fetchall()
     column_names = [description[0] for description in c.description]
     product_list = dict_zip_multiple(product_item, column_names)
+    print()
 
     return 200, data_good_message("数据获取成功", "product_information", product_list)
 
@@ -86,9 +89,13 @@ def update_product(data):
     update_query = "UPDATE Product SET "
     count = 0
     for i in range(len(key) - 1):
-        update_query += f"{key[count]} = '{value[count]}', "
-        count += 1
-    update_query += f"{key[count]} = '{value[count]}' WHERE uuid ='{product_uuid}'"
+        if key[count] == "class_uuid":
+            update_query += f"{key[count]} = '{value[count]}', "
+            count += 1
+        else:
+            update_query += f"{key[count]} = '{encode_to_base64(str(value[count]))}', "
+            count += 1
+    update_query += f"{key[count]} = '{encode_to_base64(str(value[count]))}' WHERE uuid ='{product_uuid}'"
     c.execute(update_query)
     conn.commit()
     conn.close()

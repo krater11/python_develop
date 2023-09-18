@@ -370,18 +370,19 @@ class Application(BaseHTTPRequestHandler):
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['read_permission'])):
-                    try:
-                        response_code, message = get_note()
-                        bmessage = message.encode("utf-8")
-                        self.send_response(response_code)
-                        self.send_header('Content-type', 'text/html')
-                        self.end_headers()
-                        self.wfile.write(bmessage)
-                    except Exception:
-                        self.send_response(400)
-                        self.send_header('Content-type', 'text/html')
-                        self.end_headers()
-                        self.wfile.write("数据格式错误".encode("utf-8"))
+                    response_code, message = get_note()
+                    bmessage = message.encode("utf-8")
+                    self.send_response(response_code)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(bmessage)
+                    # try:
+                    #
+                    # except Exception:
+                    #     self.send_response(400)
+                    #     self.send_header('Content-type', 'text/html')
+                    #     self.end_headers()
+                    #     self.wfile.write("数据格式错误".encode("utf-8"))
                 else:
                     bmessage = "用户缺少权限".encode("utf-8")
                     self.send_response(400)
@@ -475,7 +476,6 @@ class Application(BaseHTTPRequestHandler):
         elif path[0] == "/api/web_product_class":
             try:
                 url = f"http://{self.headers['Host']}{self.path}"
-                product_class = get_url_data(url)['pid'][0]
                 response_code, message = get_product_class()
                 bmessage = message.encode("utf-8")
                 self.send_response(response_code)
@@ -491,8 +491,7 @@ class Application(BaseHTTPRequestHandler):
         elif path[0] == "/api/web_product":
             try:
                 url = f"http://{self.headers['Host']}{self.path}"
-                product_class = get_url_data(url)['product_class_id'][0]
-                response_code, message = get_product(product_class)
+                response_code, message = get_product()
                 bmessage = message.encode("utf-8")
                 self.send_response(response_code)
                 self.send_header('Content-type', 'text/html')
@@ -931,15 +930,16 @@ class Application(BaseHTTPRequestHandler):
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['update_permission'])):
-                    try:
-                        content_length = int(self.headers['Content-Length'])
-                        post_data = self.rfile.read(content_length).decode("utf-8")
-                        data = json.loads(post_data)
-                        response_code, message = update_rich_text(data)
-                        bmessage = message.encode("utf-8")
-                    except Exception:
-                        response_code = 400
-                        bmessage = "数据格式错误".encode("utf-8")
+                    # try:
+                    #
+                    # except Exception:
+                    #     response_code = 400
+                    #     bmessage = "数据格式错误".encode("utf-8")
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length).decode("utf-8")
+                    data = json.loads(post_data)
+                    response_code, message = update_rich_text(data)
+                    bmessage = message.encode("utf-8")
                     self.send_response(response_code)
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()
