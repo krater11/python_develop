@@ -28,19 +28,18 @@ def upload_product(data):
         return 400, bad_message("数据库连接失败")
 
     class_uuid = data["class_uuid"]
-    product_class = data["product_class"]
-    name = data["name"]
-    introduction = data["product_introduction"]
-    text = data["text"]
-    image = data["image"]
-    recommend = data["recommend"]
+    product_class = encrypt_string(data["product_class"])
+    name = encrypt_string(data["name"])
+    introduction = encrypt_string(data["product_introduction"])
+    text = encrypt_string(data["text"])
+    image = encrypt_string(data["image"])
+    recommend = encrypt_string(data["recommend"])
     uuid_str = str(uuid.uuid4())
 
     post_data = (class_uuid, product_class, name, introduction, image, uuid_str, text, recommend)
-    print(post_data)
-    # c.execute("INSERT INTO Product (class_uuid, product_class, name, product_introduction, image, uuid, text, recommend) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", post_data)
-    # conn.commit()
-    # conn.close()
+    c.execute("INSERT INTO Product (class_uuid, product_class, name, product_introduction, image, uuid, text, recommend) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", post_data)
+    conn.commit()
+    conn.close()
     return 200, normal_good_message("保存成功")
 
 
@@ -53,7 +52,14 @@ def get_product():
     product_item = c.execute(f"SELECT uuid, name, product_class, recommend, image, product_introduction FROM Product").fetchall()
     column_names = [description[0] for description in c.description]
     product_list = dict_zip_multiple(product_item, column_names)
-    print()
+    for i in product_list:
+        for k,v in i.items():
+            if k == "class_uuid":
+                continue
+            elif k == "uuid":
+                continue
+            else:
+                i[k] = decrypt_string(v)
 
     return 200, data_good_message("数据获取成功", "product_information", product_list)
 
@@ -67,6 +73,16 @@ def get_product_detail(product_uuid):
     product_item = c.execute(f"SELECT * FROM Product WHERE uuid='{product_uuid}'").fetchall()
     column_names = [description[0] for description in c.description]
     product_list = dict_zip_multiple(product_item, column_names)
+    for i in product_list:
+        for k,v in i.items():
+            if k == "id":
+                continue
+            elif k == "class_uuid":
+                continue
+            elif k == "uuid":
+                continue
+            else:
+                i[k] = decrypt_string(v)
     return 200, data_good_message("数据获取成功", "product_detail_information", product_list[0])
 
 
@@ -76,17 +92,20 @@ def update_product(data):
     except Exception:
         return 400, bad_message("数据库连接失败")
 
-    print(data)
     product_uuid = data["uuid"]
     key = []
     value = []
     for k, v in data.items():
         if k == "id":
             continue
-        if k == "uuid":
+        elif k == "uuid":
             continue
-        key.append(k)
-        value.append(v)
+        elif k == "class_uuid":
+            key.append(k)
+            value.append(v)
+        else:
+            key.append(k)
+            value.append(encrypt_string(v))
     update_query = "UPDATE Product SET "
     count = 0
     for i in range(len(key) - 1):
