@@ -6,7 +6,7 @@ from DBManager.DBConnect import connectdb
 from utils.DictZip import dict_zip_multiple, dict_zip
 from utils.ResponseBadMessage import bad_message
 from utils.ResponseGoodMessage import normal_good_message, data_good_message, listdata_good_message
-from utils.encode_decode import encode_to_base64, is_base64, decode_from_base64
+from utils.encode_decode import encrypt_string, decrypt_string
 
 
 def upload_ad_text(data):
@@ -33,9 +33,9 @@ def upload_ad_text(data):
     introduction = data["introduction"]
     create_time = str(datetime.now()).split(".")[0]
     text_data = (title, content, richtext_type, image, introduction, create_time)
-    c.execute("INSERT INTO AdManage (title, content, type, image, introduction, create_time) VALUES (?, ?, ?, ?, ?, ?)", text_data)
-    conn.commit()
-    conn.close()
+    # c.execute("INSERT INTO AdManage (title, content, type, image, introduction, create_time) VALUES (?, ?, ?, ?, ?, ?)", text_data)
+    # conn.commit()
+    # conn.close()
     return 200, normal_good_message("上传成功")
 
 
@@ -62,16 +62,6 @@ def get_ad_text(text_id):
     text_item = c.execute("SELECT * FROM AdManage WHERE text_id = '%d'" % int(text_id)).fetchone()
     column_names = [description[0] for description in c.description]
     data = dict_zip(text_item, column_names)
-    for k, v in data.items():
-        if k == "note_id":
-            continue
-        else:
-            if str(v).isdigit():
-                continue
-            else:
-                if is_base64(v):
-                    v = decode_from_base64(v)
-                    data[k] = v
 
     return 200, data_good_message("获取成功", "text_information", data)
 
@@ -112,12 +102,9 @@ def update_ad_text(data):
     update_query = "UPDATE AdManage SET "
     count = 0
     for i in range(len(key) - 1):
-        if key[count] == "type":
-            update_query += f'{key[count]} = "{value[count]}", '
-            count += 1
-        else:
-            update_query += f'{key[count]} = "{encode_to_base64(str(value[count]))}", '
-            count += 1
+        update_query += f'{key[count]} = "{value[count]}", '
+        count += 1
+
     update_query += f'{key[count]} = "{value[count]}" WHERE text_id ={text_id}'
     c.execute(update_query)
     conn.commit()

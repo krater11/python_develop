@@ -32,3 +32,4 @@ AUDIO_LIST = ['mp3', 'wav', 'flac', 'acc']
 
 VIDEO_LIST = ['mpg', 'mpeg', 'mp4', 'avi', 'mov', 'wmv', 'swf']
 
+AES_KEY = b'y\xabh3\x91\xac\xfc\x84~\x81B3\xe2\xd8.v\x1c\x85\xd3:\xd9M\xf2\x96\xd4\xcc\x06\xb3\xb3a\xb2\xbd'

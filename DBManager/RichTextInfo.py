@@ -9,7 +9,7 @@ import json
 import socket
 from utils.ResponseGoodMessage import normal_good_message, data_good_message
 from utils.ResponseBadMessage import bad_message
-from utils.encode_decode import encode_to_base64, decode_from_base64, is_base64
+from utils.encode_decode import decrypt_string, encrypt_string
 
 root_path = ROOT_PATH.replace("\\", "/")
 image_path = FILE_PATH + "/" + "rich_text_image/"
@@ -31,12 +31,10 @@ def upload_rich_text(data):
         return 400, bad_message("数据库连接失败")
 
     richtext_type = data["type"]
-    text_name = data["text_name"]
-    text = data["text"]
+    text_name = encrypt_string(data["text_name"])
+    text = encrypt_string(data["text"])
     text_data = (text_name, text, richtext_type)
-    c.execute(
-        "INSERT INTO RichTextInfo (text_name, text, type) VALUES (?, ?, ?)",
-        text_data)
+    c.execute("INSERT INTO RichTextInfo (text_name, text, type) VALUES (?, ?, ?)", text_data)
     conn.commit()
     conn.close()
     return 200, normal_good_message("保存成功")
@@ -55,15 +53,10 @@ def get_rich_text(rich_text_type):
         for k,v in i.items():
             if k == "text_id":
                 continue
-            else:
-                if v.isdigit():
-                    print("ok")
-                    continue
-                # elif is_base64(v):
-                #     v = decode_from_base64(v)
-                #     i[k] = v
-    json_data = json.dumps(data)
-    return 200, data_good_message("获取成功", "rich_text_information", json_data)
+            elif k == "type":
+                continue
+            i[k] = decrypt_string(v)
+    return 200, data_good_message("获取成功", "rich_text_information", data)
 
 
 def update_rich_text(data):
@@ -76,14 +69,19 @@ def update_rich_text(data):
     key = []
     value = []
     for k, v in data.items():
-        if k != "text_id":
+        if k == "text_id":
+            continue
+        elif k == "type":
             key.append(k)
             value.append(v)
+        else:
+            key.append(k)
+            value.append(encrypt_string(v))
 
     update_query = "UPDATE RichTextInfo SET "
     count = 0
     for i in range(len(key) - 1):
-        update_query += f"{key[count]} = \'{encode_to_base64(str(value[count]))}\', "
+        update_query += f"{key[count]} = \'{value[count]}\', "
         count += 1
     update_query += f"{key[count]} = \'{value[count]}\' WHERE text_id ={text_id}"
     c.execute(update_query)

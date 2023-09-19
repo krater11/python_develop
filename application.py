@@ -690,15 +690,16 @@ class Application(BaseHTTPRequestHandler):
             if status == 200:
                 data = permission_status(username)
                 if bool(int(data['upload_permission'])):
-                    try:
-                        content_length = int(self.headers['Content-Length'])
-                        post_data = self.rfile.read(content_length).decode("utf-8")
-                        data = json.loads(post_data)
-                        response_code, message = upload_rich_text(data)
-                        bmessage = message.encode("utf-8")
-                    except Exception:
-                        response_code = 400
-                        bmessage = "数据格式错误".encode("utf-8")
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length).decode("utf-8")
+                    data = json.loads(post_data)
+                    response_code, message = upload_rich_text(data)
+                    bmessage = message.encode("utf-8")
+                    # try:
+                    #
+                    # except Exception:
+                    #     response_code = 400
+                    #     bmessage = "数据格式错误".encode("utf-8")
                     self.send_response(response_code)
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()
@@ -900,15 +901,16 @@ class Application(BaseHTTPRequestHandler):
                 self.wfile.write(bmessage)
 
         elif self.path == "/api/note":
-            try:
-                content_length = int(self.headers['Content-Length'])
-                post_data = self.rfile.read(content_length).decode("utf-8")
-                data = json.loads(post_data)
-                response_code, message = upload_note(data)
-                bmessage = message.encode("utf-8")
-            except Exception:
-                response_code = 400
-                bmessage = "数据格式错误".encode("utf-8")
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length).decode("utf-8")
+            data = json.loads(post_data)
+            response_code, message = upload_note(data)
+            bmessage = message.encode("utf-8")
+            # try:
+            #
+            # except Exception:
+            #     response_code = 400
+            #     bmessage = "数据格式错误".encode("utf-8")
             self.send_response(response_code)
             self.send_header('Content-type', 'text/html')
             self.end_headers()

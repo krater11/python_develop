@@ -5,7 +5,7 @@ from DBManager.DBConnect import connectdb
 from utils.ResponseBadMessage import bad_message
 from utils.ResponseGoodMessage import normal_good_message, data_good_message
 from utils.DictZip import dict_zip_multiple, dict_zip
-from utils.encode_decode import encode_to_base64
+from utils.encode_decode import decrypt_string, encrypt_string
 
 
 def upload_product(data):
@@ -37,9 +37,10 @@ def upload_product(data):
     uuid_str = str(uuid.uuid4())
 
     post_data = (class_uuid, product_class, name, introduction, image, uuid_str, text, recommend)
-    c.execute("INSERT INTO Product (class_uuid, product_class, name, product_introduction, image, uuid, text, recommend) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", post_data)
-    conn.commit()
-    conn.close()
+    print(post_data)
+    # c.execute("INSERT INTO Product (class_uuid, product_class, name, product_introduction, image, uuid, text, recommend) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", post_data)
+    # conn.commit()
+    # conn.close()
     return 200, normal_good_message("保存成功")
 
 
@@ -89,13 +90,9 @@ def update_product(data):
     update_query = "UPDATE Product SET "
     count = 0
     for i in range(len(key) - 1):
-        if key[count] == "class_uuid":
-            update_query += f"{key[count]} = '{value[count]}', "
-            count += 1
-        else:
-            update_query += f"{key[count]} = '{encode_to_base64(str(value[count]))}', "
-            count += 1
-    update_query += f"{key[count]} = '{encode_to_base64(str(value[count]))}' WHERE uuid ='{product_uuid}'"
+        update_query += f"{key[count]} = '{value[count]}', "
+        count += 1
+    update_query += f"{key[count]} = '{value[count]}' WHERE uuid ='{product_uuid}'"
     c.execute(update_query)
     conn.commit()
     conn.close()

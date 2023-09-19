@@ -4,7 +4,7 @@ from DBManager.DBConnect import connectdb
 from utils.DictZip import dict_zip_multiple,dict_zip
 from utils.ResponseBadMessage import bad_message
 from utils.ResponseGoodMessage import normal_good_message, data_good_message
-from utils.encode_decode import is_base64, decode_from_base64
+from utils.encode_decode import decrypt_string, encrypt_string
 
 
 def upload_note(data):
@@ -24,12 +24,12 @@ def upload_note(data):
     except Exception:
         return 400, bad_message("数据库连接失败")
 
-    name = data["name"]
-    phone = data["phone"]
-    email = data["email"]
-    note = data["note"]
-    create_time = str(datetime.now())
-    title = data["title"]
+    name = encrypt_string(data["name"])
+    phone = encrypt_string(data["phone"])
+    email = encrypt_string(data["email"])
+    note = encrypt_string(data["note"])
+    create_time = encrypt_string(str(datetime.now()).split(".")[0])
+    title = encrypt_string(data["title"])
     tuple_data = (name, phone, email, note, create_time, title)
     c.execute("INSERT INTO NoteInfo (name, phone, email, note, create_time, title) VALUES (?,?,?,?,?,?)", tuple_data)
     conn.commit()
@@ -50,13 +50,7 @@ def get_note():
         for k,v in i.items():
             if k == "note_id":
                 continue
-            else:
-                if v.isdigit():
-                    continue
-                else:
-                    if is_base64(v):
-                        v = decode_from_base64(v)
-                        i[k] = v
+            i[k] = decrypt_string(v)
     return 200, data_good_message("获取成功", "note_information", dict_zip)
 
 
@@ -73,7 +67,7 @@ def update_note(data):
         if k == "note_id":
             continue
         key.append(k)
-        value.append(v)
+        value.append(encrypt_string(v))
 
     update_query = "UPDATE NoteInfo SET "
     count = 0
